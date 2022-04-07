@@ -3,6 +3,7 @@
 #include <exception>
 #include <functional>
 #include <sstream>
+#include <utility>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
@@ -218,10 +219,22 @@ namespace minigl
         generate_uniforms(frag_shader);
 
         generate_attributes(vert_shader);
+        is_ok = true;
+    }
+
+    render_pipeline::render_pipeline(render_pipeline&& old)
+    {
+        vao_id = old.vao_id;
+        shader_program_id = old.shader_program_id;
+        attribute_map = std::move(old.attribute_map);
+        uniform_map = std::move(old.uniform_map);
+        is_ok = true;
+        old.is_ok = false;
     }
 
     render_pipeline::~render_pipeline()
     {
+        if (!is_ok) return;
         for (auto pair : attribute_map) {
             glDeleteBuffers(1, &pair.second.second.buffer_id);
         }
@@ -229,8 +242,15 @@ namespace minigl
         glDeleteVertexArrays(1, &vao_id);
     }
 
+    bool render_pipeline::ok(void) 
+    {
+        return is_ok;
+    }
+
     void render_pipeline::render(void)
     {
+        if (!is_ok) return;
+        glBindVertexArray(vao_id);
         glUseProgram(shader_program_id);
         int size = attribute_map.size();
         for (GLuint i = 0; i < size; i++) {

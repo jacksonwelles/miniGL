@@ -168,6 +168,7 @@ namespace minigl
             GLuint buffer_id;
             GLsizei shape_size;
         };
+        bool is_ok = false;
         GLsizei min_verticies;
         GLuint vao_id;
         GLuint shader_program_id;
@@ -179,51 +180,44 @@ namespace minigl
         void generate_attributes(const shader &s);
 
     public:
+        render_pipeline() = delete;
         render_pipeline(const shader &vert_shader, const shader &frag_shader);
+        render_pipeline(const render_pipeline&) = delete;
+        render_pipeline(render_pipeline&& old);
         ~render_pipeline();
+        bool ok(void);
         template <typename T>
-        requires valid_uniform<T>
+            requires valid_uniform<T>
         void update_uniform(std::string name, const T &new_value)
         {
+            if (!is_ok) return;
             auto pair = uniform_map.at(name);
             if (pair.first != std::type_index(typeid(T)))
             {
                 throw std::runtime_error("uniform type does not match");
             }
             glUseProgram(shader_program_id);
-            if constexpr (std::same_as<T, typename glm::mat4>)
-            {
+            if constexpr (std::same_as<T, typename glm::mat4>) {
                 glUniformMatrix4fv(pair.second, 1, GL_FALSE, &new_value[0][0]);
-            }
-            else if constexpr (std::same_as<T, typename glm::mat3>)
-            {
+            } else if constexpr (std::same_as<T, typename glm::mat3>) {
                 glUniformMatrix3fv(pair.second, 1, GL_FALSE, &new_value[0][0]);
-            }
-            else if constexpr (std::same_as<T, typename glm::vec3>)
-            {
+            } else if constexpr (std::same_as<T, typename glm::vec3>) {
                 glUniform3f(pair.second, new_value[0], new_value[1], new_value[2]);
-            }
-            else if constexpr (std::same_as<T, typename glm::vec4>)
-            {
+            } else if constexpr (std::same_as<T, typename glm::vec4>) {
                 glUniform4f(pair.second, new_value[0], new_value[1], new_value[2], new_value[3]);
-            }
-            else if constexpr (std::same_as<T, int>)
-            {
+            } else if constexpr (std::same_as<T, int>) {
                 glUniform1i(pair.second, new_value);
-            }
-            else if constexpr (std::same_as<T, float>)
-            {
+            } else if constexpr (std::same_as<T, float>) {
                 glUniform1f(pair.second, new_value);
-            }
-            else if constexpr (std::same_as<T, color>)
-            {
+            } else if constexpr (std::same_as<T, color>) {
                 glUniform4f(pair.second, new_value[0], new_value[1], new_value[2], new_value[3]);
             }
         }
         template <typename T>
-        requires valid_vertex_attribute<T>
+            requires valid_vertex_attribute<T>
         void update_vertex_attr(std::string attr_name, const std::vector<T> &new_value)
         {
+            if (!is_ok) return;
             auto pair = attribute_map.at(attr_name);
             if (pair.first != std::type_index(typeid(T))) {
                 throw std::runtime_error("attribute type does not match");
@@ -240,6 +234,7 @@ namespace minigl
             if (new_value.size() < min_verticies || min_verticies == 0) {
                 min_verticies = new_value.size();
             }
+            glBindVertexArray(vao_id);
             glUseProgram(shader_program_id);
             glEnableVertexAttribArray(pair.second.array_num);
             glBindBuffer(GL_ARRAY_BUFFER, pair.second.buffer_id);

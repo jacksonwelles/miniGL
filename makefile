@@ -16,7 +16,7 @@ sandbox: sandbox.o minigl.o
 	$(CC) -o sandbox.exe sandbox.o minigl.o $(LDFLAGS)
 
 sandbox.o: minigl.hpp
-standard_cube.o: shader_loader.hpp minigl.hpp
+standard_cube.o: shader_loader.hpp
 shader_loader.o: shader_loader.hpp
 minigl.o: minigl.hpp
 

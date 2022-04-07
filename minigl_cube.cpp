@@ -119,21 +119,42 @@ int main( void )
         }
     )");
 
-    render_pipeline cube_line(vertex_shader, fragment_shader);
-
     glm::mat4 Projection = glm::perspective(glm::radians(45.0f), 1024.0f / 768.0f, 0.1f, 100.0f);
     glm::mat4 View = glm::lookAt(glm::vec3(-6,7,8), glm::vec3(0,0,0), glm::vec3(0,1,0));
     glm::mat4 Model = glm::mat4(1.0f);
     glm::mat4 mvp = Projection * View * Model;
 
-    cube_line.update_uniform("MVP", mvp);
-
     my_window.set_background_color(color(colors::forest_green));
 
+    vector<render_pipeline> pipelines;
+
+    double last_time = glfwGetTime();
+    double f_last_time = glfwGetTime();
+    int counter = 0;
+    int nframes = 0;
     my_window.render([&]{
-        cube_line.update_vertex_attr("vertex_position", g_vertex_buffer_data);
-        cube_line.update_vertex_attr("vertex_color", g_color_buffer_data);
-        cube_line.render();
+        double current_time = glfwGetTime();
+        double f_current_time = current_time;
+        if (current_time - last_time > .1){
+            pipelines.emplace_back( vertex_shader, fragment_shader);
+            pipelines[pipelines.size()-1].update_uniform("MVP", Projection* View * translate(Model, vec3(0,0,0.01*counter)));
+            pipelines[pipelines.size()-1].update_vertex_attr("vertex_position", g_vertex_buffer_data);
+            pipelines[pipelines.size()-1].update_vertex_attr("vertex_color", g_color_buffer_data);
+            counter++;
+            last_time = current_time;
+            
+        }
+        if (f_current_time - f_last_time > 2)
+        {
+            f_last_time = f_current_time;
+            cout << "between frames: " << 1000.0/ double(nframes) <<" ms" <<endl;
+            nframes = 0;
+        }
+        nframes++;
+        for (auto &t : pipelines)
+        {
+            t.render();
+        }
     });
     return 0;
 }
