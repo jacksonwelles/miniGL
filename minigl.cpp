@@ -13,8 +13,10 @@ template<class... Ts> struct overloaded : Ts... { using Ts::operator()...; };
 namespace minigl
 {
     const std::map<std::type_index, std::string> shader_translations = {
+        {std::type_index(typeid(texture)), "sampler2D"},
         {std::type_index(typeid(int)), "int"},
         {std::type_index(typeid(float)), "float"},
+        {std::type_index(typeid(glm::vec2)), "vec2"},
         {std::type_index(typeid(glm::vec3)), "vec3"},
         {std::type_index(typeid(glm::vec4)), "vec4"},
         {std::type_index(typeid(glm::mat3)), "mat3"},
@@ -50,6 +52,21 @@ namespace minigl
     {
         os << "r: " << c.red() <<", g: " << c.green() << ", b: " << c.blue() << ", a: " << c.alpha();
         return os;
+    }
+
+    texture::texture(const pixels &width, const pixels &height, const color &background = colors::black)
+    {
+        w = width.px;
+        h = height.px;
+        for (int i = 0; i < w*h; i++) {
+            tex_data.push_back(background);
+        }
+    }
+
+    std::span<color> texture::operator[](int i)
+    {
+        if (i >= h) throw std::out_of_range("minigl::texture::operator[]");
+        return std::span(tex_data.begin() + i * w, w);
     }
 
     window::window(pixels width, pixels height, std::string name)
@@ -183,9 +200,21 @@ namespace minigl
 
     void render_pipeline::generate_uniforms(const shader &s)
     {
+        int tex_count = 0;
         for (auto pair : s.uniform_map) {
             GLuint uni_id = glGetUniformLocation(shader_program_id, pair.first.c_str());
-            uniform_map.insert({pair.first, {pair.second, uni_id}});
+            GLuint tex_id = 0;
+            GLuint tex_num = 0;
+            if (pair.second == std::type_index(typeid(texture))) {
+                glGenTextures(1, &tex_id);
+                tex_num = tex_count++;
+                texture_ids.push_back(tex_id);
+            }
+            uniform_map.insert({pair.first, {
+                .type_id = pair.second, 
+                .uniform_id = uni_id,
+                .texture_num = tex_num,
+                .texture_id = tex_id}});
         }
     }
 
@@ -195,8 +224,11 @@ namespace minigl
         for (auto pair : s.attribute_map) {
             GLuint buffer_id;
             glGenBuffers(1, &buffer_id);
-            attribute_map.insert({pair.first,
-                {pair.second, {.array_num = count, .buffer_id = buffer_id, .shape_size = 0}}});
+            attribute_map.insert({pair.first, {
+                .type_id = pair.second,
+                .array_num = count,
+                .buffer_id = buffer_id,
+                .shape_size = 0}});
             count++;
         }
     }
@@ -236,7 +268,10 @@ namespace minigl
     {
         if (!is_ok) return;
         for (auto pair : attribute_map) {
-            glDeleteBuffers(1, &pair.second.second.buffer_id);
+            glDeleteBuffers(1, &pair.second.buffer_id);
+        }
+        for (auto tex_id : texture_ids) {
+            glDeleteTextures(1, &tex_id);
         }
         glDeleteProgram(shader_program_id);
         glDeleteVertexArrays(1, &vao_id);
@@ -252,12 +287,17 @@ namespace minigl
         if (!is_ok) return;
         glBindVertexArray(vao_id);
         glUseProgram(shader_program_id);
-        int size = attribute_map.size();
-        for (GLuint i = 0; i < size; i++) {
+        int tex_count = texture_ids.size();
+        for (GLuint i = 0; i < tex_count; i++) {
+            glActiveTexture(GL_TEXTURE0 + i);
+            glBindTexture(GL_TEXTURE_2D, texture_ids[i]);
+        }
+        int attr_size = attribute_map.size();
+        for (GLuint i = 0; i < attr_size; i++) {
             glEnableVertexAttribArray(i);
         }
-        glDrawArrays(GL_TRIANGLES, 0, 36);
-        for (GLuint i = 0; i < size; i++) {
+        glDrawArrays(GL_TRIANGLES, 0, min_verticies);
+        for (GLuint i = 0; i < attr_size; i++) {
             glDisableVertexAttribArray(i);
         }
     }

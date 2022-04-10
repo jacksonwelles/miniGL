@@ -135,9 +135,9 @@ int main( void )
     my_window.render([&]{
         double current_time = glfwGetTime();
         double f_current_time = current_time;
-        if (current_time - last_time > .1){
+        if (current_time - last_time > .01){
             pipelines.emplace_back( vertex_shader, fragment_shader);
-            pipelines[pipelines.size()-1].update_uniform("MVP", Projection* View * translate(Model, vec3(0,0,0.01*counter)));
+            pipelines[pipelines.size()-1].update_uniform("MVP", Projection* View * translate(Model, vec3(0,0,0.001*counter)));
             pipelines[pipelines.size()-1].update_vertex_attr("vertex_position", g_vertex_buffer_data);
             pipelines[pipelines.size()-1].update_vertex_attr("vertex_color", g_color_buffer_data);
             counter++;

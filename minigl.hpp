@@ -20,6 +20,7 @@
 #include <utility>
 #include <typeinfo>
 #include <typeindex>
+#include <span>
 
 namespace minigl
 {
@@ -53,6 +54,7 @@ namespace minigl
     public:
         constexpr color(float r, float g, float b, float a = 1) : glm::vec4{r, g, b, a} {};
         color(colors c);
+        color(const color&) = default;
         float &red(void) { return glm::vec4::operator[](0); }
         float &green(void) { return glm::vec4::operator[](1); }
         float &blue(void) { return glm::vec4::operator[](2); }
@@ -74,6 +76,21 @@ namespace minigl
     {
         return pixels(arg);
     }
+
+    class texture
+    {
+    private:
+        std::vector<color> tex_data;
+        int w;
+        int h;
+    public:
+        texture(const pixels &width, const pixels &height, const color &background);
+        int width(void) const {return w;}
+        int height(void) const {return h;}
+        std::vector<color>::iterator data(void) {return tex_data.begin();} 
+        std::span<color> operator[](int i);
+        friend render_pipeline;
+    };
 
     class window
     {
@@ -114,6 +131,7 @@ namespace minigl
 
     template <typename T>
     concept valid_uniform =
+        std::same_as<T, texture> ||
         std::same_as<T, typename glm::vec3> ||
         std::same_as<T, typename glm::vec4> ||
         std::same_as<T, typename glm::mat3> ||
@@ -162,19 +180,28 @@ namespace minigl
     class render_pipeline
     {
     private:
-        struct attr_node
+        struct attribute_node
         {
+            std::type_index type_id;
             GLuint array_num;
             GLuint buffer_id;
             GLsizei shape_size;
+        };
+        struct uniform_node
+        {
+            std::type_index type_id;
+            GLuint uniform_id;
+            GLuint texture_num;
+            GLuint texture_id;
         };
         bool is_ok = false;
         GLsizei min_verticies;
         GLuint vao_id;
         GLuint shader_program_id;
         float *vertex_buffer;
-        std::map<std::string, std::pair<std::type_index, GLuint>> uniform_map;
-        std::map<std::string, std::pair<std::type_index, attr_node>> attribute_map;
+        std::vector<GLuint> texture_ids;
+        std::map<std::string, uniform_node> uniform_map;
+        std::map<std::string, attribute_node> attribute_map;
         std::string generate_shader_includes(const shader &s);
         void generate_uniforms(const shader &s);
         void generate_attributes(const shader &s);
@@ -191,26 +218,33 @@ namespace minigl
         void update_uniform(std::string name, const T &new_value)
         {
             if (!is_ok) return;
-            auto pair = uniform_map.at(name);
-            if (pair.first != std::type_index(typeid(T)))
-            {
+            auto node = uniform_map.at(name);
+            if (node.type_id != std::type_index(typeid(T))) {
                 throw std::runtime_error("uniform type does not match");
             }
             glUseProgram(shader_program_id);
-            if constexpr (std::same_as<T, typename glm::mat4>) {
-                glUniformMatrix4fv(pair.second, 1, GL_FALSE, &new_value[0][0]);
+            if constexpr (std::same_as<T, texture>) {
+                glBindTexture(GL_TEXTURE_2D, node.texture_id);
+                glTexImage2D(GL_TEXTURE_2D,
+                    0, GL_RGBA, new_value.width(), new_value.height(),
+                    0, GL_RGBA, GL_FLOAT, new_value.tex_data.data());
+                glUniform1i(node.uniform_id, node.texture_num);
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+            } else if constexpr (std::same_as<T, typename glm::mat4>) {
+                glUniformMatrix4fv(node.uniform_id, 1, GL_FALSE, &new_value[0][0]);
             } else if constexpr (std::same_as<T, typename glm::mat3>) {
-                glUniformMatrix3fv(pair.second, 1, GL_FALSE, &new_value[0][0]);
+                glUniformMatrix3fv(node.uniform_id, 1, GL_FALSE, &new_value[0][0]);
             } else if constexpr (std::same_as<T, typename glm::vec3>) {
-                glUniform3f(pair.second, new_value[0], new_value[1], new_value[2]);
+                glUniform3f(node.uniform_id, new_value[0], new_value[1], new_value[2]);
             } else if constexpr (std::same_as<T, typename glm::vec4>) {
-                glUniform4f(pair.second, new_value[0], new_value[1], new_value[2], new_value[3]);
+                glUniform4f(node.uniform_id, new_value[0], new_value[1], new_value[2], new_value[3]);
             } else if constexpr (std::same_as<T, int>) {
-                glUniform1i(pair.second, new_value);
+                glUniform1i(node.uniform_id, new_value);
             } else if constexpr (std::same_as<T, float>) {
-                glUniform1f(pair.second, new_value);
+                glUniform1f(node.uniform_id, new_value);
             } else if constexpr (std::same_as<T, color>) {
-                glUniform4f(pair.second, new_value[0], new_value[1], new_value[2], new_value[3]);
+                glUniform4f(node.uniform_id, new_value[0], new_value[1], new_value[2], new_value[3]);
             }
         }
         template <typename T>
@@ -218,8 +252,8 @@ namespace minigl
         void update_vertex_attr(std::string attr_name, const std::vector<T> &new_value)
         {
             if (!is_ok) return;
-            auto pair = attribute_map.at(attr_name);
-            if (pair.first != std::type_index(typeid(T))) {
+            auto node = attribute_map.at(attr_name);
+            if (node.type_id != std::type_index(typeid(T))) {
                 throw std::runtime_error("attribute type does not match");
             }
             int vertex_size;
@@ -236,11 +270,11 @@ namespace minigl
             }
             glBindVertexArray(vao_id);
             glUseProgram(shader_program_id);
-            glEnableVertexAttribArray(pair.second.array_num);
-            glBindBuffer(GL_ARRAY_BUFFER, pair.second.buffer_id);
+            glEnableVertexAttribArray(node.array_num);
+            glBindBuffer(GL_ARRAY_BUFFER, node.buffer_id);
             glBufferData(GL_ARRAY_BUFFER, min_verticies * sizeof(T), new_value.data(), GL_DYNAMIC_DRAW);
             glVertexAttribPointer(
-                pair.second.array_num,
+                node.array_num,
                 vertex_size,
                 GL_FLOAT,
                 GL_FALSE,
