@@ -103,17 +103,17 @@ int main( void )
     vertex_shader.add_uniform<glm::mat4>("MVP");
     vertex_shader.add_attribute<glm::vec3>("vertex_position");
     vertex_shader.add_attribute<color>("vertex_color");
+    vertex_shader.add_output<vec3>("fragment_color");
     vertex_shader.define_shader(R"(
-        out vec3 fragment_color;
         void main() {
             gl_Position = MVP * vec4(vertex_position, 1);
             fragment_color = vertex_color.rgb;
         }    
     )");
 
+    fragment_shader.add_input<vec3>("fragment_color");
+    fragment_shader.add_output<vec3>("color");
     fragment_shader.define_shader(R"(
-        in vec3 fragment_color;
-        out vec3 color;
         void main() {
             color = fragment_color;
         }
@@ -136,7 +136,7 @@ int main( void )
         double current_time = glfwGetTime();
         double f_current_time = current_time;
         if (current_time - last_time > .01){
-            pipelines.emplace_back( vertex_shader, fragment_shader);
+            pipelines.emplace_back(my_window, vertex_shader, fragment_shader);
             pipelines[pipelines.size()-1].update_uniform("MVP", Projection* View * translate(Model, vec3(0,0,0.001*counter)));
             pipelines[pipelines.size()-1].update_vertex_attr("vertex_position", g_vertex_buffer_data);
             pipelines[pipelines.size()-1].update_vertex_attr("vertex_color", g_color_buffer_data);

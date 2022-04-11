@@ -97,9 +97,13 @@ namespace minigl
     private:
         GLFWwindow *window_ptr;
         bool window_ok = false;
+        int window_width;
+        int window_height;
 
     public:
         bool ok(void);
+        int width(void) const {return window_width;}
+        int height(void) const {return window_height;}
         window(pixels width, pixels height, std::string name);
         ~window();
         window &operator=(const window &) = delete;
@@ -109,14 +113,10 @@ namespace minigl
         requires std::invocable<C, R...>
         void render(C oper, R &&...args)
         {
-            // Ensure we can capture the escape key being pressed below
-            glfwSetInputMode(window_ptr, GLFW_STICKY_KEYS, GL_TRUE);
-            // Enable depth test
-            glEnable(GL_DEPTH_TEST);
-            // Accept fragment if it closer to the camera than the former one
-            glDepthFunc(GL_LESS);
             do
             {
+                glBindFramebuffer(GL_FRAMEBUFFER, 0);
+                glViewport(0, 0, window_width, window_height);
                 glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
                 oper(std::forward<R>(args)...);
@@ -129,9 +129,24 @@ namespace minigl
         void render();
     };
 
+    void pipeline_connect(std::string r_name, render_pipeline &receiver,
+        std::string s_name, render_pipeline &transmitter,
+        pixels width = 0_px, pixels height = 0_px);
+
+    template <typename T>
+    concept valid_shader_io =
+        std::same_as<T, typename glm::vec2> ||
+        std::same_as<T, typename glm::vec3> ||
+        std::same_as<T, typename glm::vec4> ||
+        std::same_as<T, typename glm::mat3> ||
+        std::same_as<T, typename glm::mat4> ||
+        std::same_as<T, int> ||
+        std::same_as<T, color> ||
+        std::same_as<T, float>;
     template <typename T>
     concept valid_uniform =
         std::same_as<T, texture> ||
+        std::same_as<T, typename glm::vec2> ||
         std::same_as<T, typename glm::vec3> ||
         std::same_as<T, typename glm::vec4> ||
         std::same_as<T, typename glm::mat3> ||
@@ -154,13 +169,27 @@ namespace minigl
     class shader
     {
     private:
+        std::map<std::string, std::type_index> input_map;
+        std::map<std::string, std::type_index> output_map;
         std::map<std::string, std::type_index> uniform_map;
         std::map<std::string, std::type_index> attribute_map;
         std::string shader_body;
         shader_types type;
 
     public:
-        shader(shader_types t) : type{t} {}
+        shader(shader_types t) : type{t}, shader_body{""} {}
+        template <typename T>
+        requires valid_shader_io<T>
+        void add_input(std::string name)
+        {
+            input_map.insert({name, std::type_index(typeid(T))});
+        }
+        template <typename T>
+        requires valid_shader_io<T>
+        void add_output(std::string name)
+        {
+            output_map.insert({name, std::type_index(typeid(T))});
+        }
         template <typename T>
         requires valid_uniform<T>
         void add_uniform(std::string name)
@@ -194,21 +223,37 @@ namespace minigl
             GLuint texture_num;
             GLuint texture_id;
         };
+        struct output_node
+        {
+            std::type_index type_id;
+            int tex_width;
+            int tex_height;
+            GLuint tex_layout_pos;
+            GLuint framebuf_id;
+            GLuint depthbuf_id;
+        };
+        int window_width;
+        int window_height;
         bool is_ok = false;
+        bool connected = false;
         GLsizei min_verticies;
         GLuint vao_id;
         GLuint shader_program_id;
-        float *vertex_buffer;
+        std::vector<output_node> active_outputs;
         std::vector<GLuint> texture_ids;
+        std::vector<GLuint> framebuffer_ids;
+        std::vector<GLuint> depthbuffer_ids;
+        std::map<std::string, output_node> output_map;
         std::map<std::string, uniform_node> uniform_map;
         std::map<std::string, attribute_node> attribute_map;
         std::string generate_shader_includes(const shader &s);
         void generate_uniforms(const shader &s);
         void generate_attributes(const shader &s);
+        void generate_io(const shader &s);
 
     public:
         render_pipeline() = delete;
-        render_pipeline(const shader &vert_shader, const shader &frag_shader);
+        render_pipeline(const window& target_window, const shader &vert_shader, const shader &frag_shader);
         render_pipeline(const render_pipeline&) = delete;
         render_pipeline(render_pipeline&& old);
         ~render_pipeline();
@@ -235,6 +280,8 @@ namespace minigl
                 glUniformMatrix4fv(node.uniform_id, 1, GL_FALSE, &new_value[0][0]);
             } else if constexpr (std::same_as<T, typename glm::mat3>) {
                 glUniformMatrix3fv(node.uniform_id, 1, GL_FALSE, &new_value[0][0]);
+            } else if constexpr (std::same_as<T, typename glm::vec2>) {
+                glUniform2f(node.uniform_id, new_value[0], new_value[1]);
             } else if constexpr (std::same_as<T, typename glm::vec3>) {
                 glUniform3f(node.uniform_id, new_value[0], new_value[1], new_value[2]);
             } else if constexpr (std::same_as<T, typename glm::vec4>) {
@@ -282,6 +329,10 @@ namespace minigl
                 (void *)0);
         }
         void render(void);
+        void render_textures(void);
+        friend void pipeline_connect(std::string r_name, render_pipeline &receiver,
+        std::string s_name, render_pipeline &transmitter,
+            pixels width, pixels height);
     };
 }
 

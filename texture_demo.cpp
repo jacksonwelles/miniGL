@@ -41,8 +41,8 @@ int main(void)
 
     vertex_shader.add_attribute<vec3>("pos");
     vertex_shader.add_attribute<vec2>("uv");
+    vertex_shader.add_output<vec2>("frag_uv");
     vertex_shader.define_shader(R"(
-        out vec2 frag_uv;
         void main()
         {
             gl_Position = vec4(pos, 1);
@@ -52,9 +52,9 @@ int main(void)
     fragment_shader.add_uniform<int>("swap");
     fragment_shader.add_uniform<texture>("tex1");
     fragment_shader.add_uniform<texture>("tex2");
+    fragment_shader.add_output<vec3>("color");
+    fragment_shader.add_input<vec2>("frag_uv");
     fragment_shader.define_shader(R"(
-        out vec3 color;
-        in vec2 frag_uv;
         void main()
         {
             if (swap == 0) {
@@ -65,7 +65,7 @@ int main(void)
         }
     )");
 
-    render_pipeline triangle(vertex_shader, fragment_shader);
+    render_pipeline triangle(my_window, vertex_shader, fragment_shader);
     triangle.update_vertex_attr("pos", plane_buff);
     triangle.update_vertex_attr("uv", uvs);
     texture tex1(200_px, 150_px, colors::white);
