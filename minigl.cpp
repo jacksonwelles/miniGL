@@ -45,6 +45,18 @@ namespace minigl
             case colors::brown: *this = color(0.1f, 0.0f, 0.0f); break;
         }
     }
+    shape::shapes(shapes s)
+    {
+        switch(s)
+        {
+            case shapes::square: break;
+            case shapes::triangle: break;
+            case shapes::circle: break;
+            case shapes::rectangle: break;
+        }
+    }
+
+
     std::ostream& operator<<(std::ostream &os, const color &c)
     {
         os << "r: " << c.red() <<", g: " << c.green() << ", b: " << c.blue() << ", a: " << c.alpha();

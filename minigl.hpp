@@ -48,6 +48,14 @@ namespace minigl
         brown,
     };
 
+    enum class shapes
+    {
+        square,
+        circle,
+        triangle,
+        rectangle,
+    };
+
     class color : public glm::vec4
     {
     public:
