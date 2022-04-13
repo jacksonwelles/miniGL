@@ -1,6 +1,6 @@
 CC = g++
 CXXFLAGS = -std=c++20 -O2
-LDFLAGS = -lGL -lGLEW -lglfw3 -L/usr/local/lib
+LDFLAGS = -lGL -lGLEW -lglfw3 -L/usr/local/lib -ldl -lpthread
 
 default: all
 
