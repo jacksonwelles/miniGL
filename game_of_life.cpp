@@ -44,8 +44,8 @@ int main(void)
 
     basic_vert_shader.add_attribute<vec3>("pos");
     basic_vert_shader.add_attribute<vec2>("uv");
-    basic_vert_shader.add_output<vec2>("frag_uv");
     basic_vert_shader.define_shader(R"(
+        out vec2 frag_uv;
         void main()
         {
             gl_Position = vec4(pos, 1);
@@ -54,27 +54,23 @@ int main(void)
     )");
 
     basic_frag_shader.add_uniform<texture>("tex");
-    basic_frag_shader.add_output<vec3>("color");
-    basic_frag_shader.add_output<vec3>("passback");
-    basic_frag_shader.add_input<vec2>("frag_uv");
     basic_frag_shader.define_shader(R"(
+        in vec2 frag_uv;
+        out vec3 color;
         void main()
         {
             color = texture(tex, frag_uv).rgb;
-            passback = color;
         }
     )");
 
     life_frag_shader.add_uniform<vec2>("texel_size");
-    life_frag_shader.add_uniform<int>("started");
     life_frag_shader.add_uniform<texture>("tex");
-    life_frag_shader.add_uniform<texture>("start");
-    life_frag_shader.add_output<vec3>("color");
-    life_frag_shader.add_input<vec2>("frag_uv");
     life_frag_shader.define_shader(R"(
-        void game_of_life(in sampler2D tex, out vec3 result)
+        in vec2 frag_uv;
+        out vec3 color;
+        void main()
         {
-            result = vec3(0,0,0); //dead
+            color = vec3(0,0,0); //dead
             float sum = 0;
             float alive = round(texture(tex, frag_uv).r);
             sum += round(texture(tex, frag_uv + vec2(texel_size.x,0)).r);
@@ -88,29 +84,21 @@ int main(void)
             
             if (alive > 0) {
                 if (sum >= 2 && sum <= 3){
-                    result = vec3(1,1,1); //alive
+                    color = vec3(1,1,1); //alive
                 }
             } else {
                 if (sum ==3) {
-                    result = vec3(1,1,1);
+                    color = vec3(1,1,1);
                 }
-            }
-        }
-        void main()
-        {
-            if (started == 0) {
-                game_of_life(start, color);
-            } else {
-                game_of_life(tex, color);
             }
         }
     )");
 
-    render_pipeline life_pipeline(my_window, basic_vert_shader, life_frag_shader);
-    render_pipeline plane_pipeline(my_window, basic_vert_shader, basic_frag_shader);
+    render_pipeline life_pipeline(basic_vert_shader, life_frag_shader);
+    render_pipeline plane_pipeline(basic_vert_shader, basic_frag_shader);
 
-    pixels height {30};
-    pixels width {40};
+    pixels height {my_window.height()};
+    pixels width {my_window.width()};
     texture life_start(width, height, colors::black);
     vector<pair<int, int>> infi_cell = {
         {0, 0},
@@ -129,35 +117,30 @@ int main(void)
     };
     for (auto pair : infi_cell)
     {
-       life_start[10 + pair.first][10 + pair.second]  = colors::white;
+       life_start[100 + pair.first][500 + pair.second]  = colors::white;
+    }
+    for (auto pair : infi_cell)
+    {
+       life_start[100 + pair.first][600 + pair.second]  = colors::white;
     }
 
-    pipeline_connect("tex", life_pipeline, "passback", plane_pipeline, width, height);
-    pipeline_connect("tex", plane_pipeline, "color", life_pipeline, width, height);
-    life_pipeline.update_vertex_attr("pos", plane_buff);
-    life_pipeline.update_vertex_attr("uv", uvs);
-    life_pipeline.update_uniform("start", life_start);
-    life_pipeline.update_uniform("started", 0);
-    life_pipeline.update_uniform("texel_size", vec2(1.0/width.px, 1.0/height.px));
-    plane_pipeline.update_vertex_attr("pos", plane_buff);
-    plane_pipeline.update_vertex_attr("uv", uvs);
+    life_pipeline["pos"] = plane_buff;
+    life_pipeline["uv"] = uvs;
+    life_pipeline["texel_size"] = vec2(1.0/width.px, 1.0/height.px);
+    plane_pipeline["pos"] = plane_buff;
+    plane_pipeline["uv"] = uvs;
 
+    life_pipeline["tex"] = life_start;
+    plane_pipeline["tex"] = life_pipeline.render_to_texture(width, height);
 
-    life_pipeline.render_textures();
     double last_time = glfwGetTime();
-    int count = 0;
-    bool active = false;
     my_window.render([&](){
         double current_time = glfwGetTime();
         if (current_time - last_time > 0.5) {
-            plane_pipeline.render_textures();
-            if (!active) {
-                life_pipeline.update_uniform("started", 1);
-                active = true;
-            }
+            life_pipeline["tex"] = plane_pipeline.render_to_texture(width, height);
+            plane_pipeline["tex"] = life_pipeline.render_to_texture(width, height);
             last_time = current_time;
-            life_pipeline.render_textures();
         }
-        plane_pipeline.render();
+        plane_pipeline.render(my_window.width(), my_window.height());
     });
 }

@@ -175,6 +175,12 @@ namespace minigl
         window::render(t);
     }
 
+    pipeline_bracket_helper &pipeline_bracket_helper::operator=(render_to_texture_helper helper)
+    {
+        render_to_texture(*pipeline, name, *helper.pipeline, helper.width, helper.height);
+        return *this;
+    }
+
     void shader::define_shader(std::string body)
     {
         shader_body = body;
@@ -245,59 +251,17 @@ namespace minigl
         std::stringstream shader_includes;
         shader_includes << "#version 330 core" << std::endl;
         int count = 0;
-        for (auto pair : s.output_map)
-        {
-            if (s.type == shader_types::fragment)
-            {
-                shader_includes << "layout(location = " << count << ") ";
-            }
-            shader_includes << "out " << shader_translations.at(pair.second) << " " << pair.first << ";" << std::endl;
-            count++;
-        }
-        for (auto pair : s.input_map)
-        {
-            if (s.type == shader_types::fragment)
-            {
-                shader_includes << "in " << shader_translations.at(pair.second) << " " << pair.first << ";" << std::endl;
-            }
-        }
         for (auto pair : s.uniform_map)
         {
             shader_includes << "uniform " << shader_translations.at(pair.second)
                             << " " << pair.first << ";" << std::endl;
         }
-        count = 0;
         for (auto pair : s.attribute_map)
         {
             shader_includes << "layout(location = " << count << ") in " << shader_translations.at(pair.second) << " " << pair.first << ";" << std::endl;
             count++;
         }
         return shader_includes.str();
-    }
-
-    void render_pipeline::generate_io(const shader &s)
-    {
-        if (s.type == shader_types::vertex)
-            return;
-        GLuint count = 0;
-        for (auto pair : s.output_map)
-        {
-            GLuint framebuf_id = 0;
-            GLuint depthbuf_id = 0;
-            glGenFramebuffers(1, &framebuf_id);
-            glGenRenderbuffers(1, &depthbuf_id);
-            framebuffer_ids.push_back(framebuf_id);
-            depthbuffer_ids.push_back(depthbuf_id);
-            output_map.insert({pair.first, {
-                .type_id = pair.second,
-                .tex_width = 0,
-                .tex_height = 0,
-                .tex_layout_pos = count,
-                .framebuf_id = framebuf_id,
-                .depthbuf_id = depthbuf_id
-            }});
-            count++;
-        }
     }
 
     void render_pipeline::generate_uniforms(const shader &s)
@@ -330,13 +294,13 @@ namespace minigl
         }
     }
 
-    render_pipeline::render_pipeline(const window &window_target, const shader &vert_shader, const shader &frag_shader)
+    render_pipeline::render_pipeline(const shader &vert_shader, const shader &frag_shader)
     {
         glGenVertexArrays(1, &vao_id);
         glBindVertexArray(vao_id);
+        glGenFramebuffers(1, &framebuf_id);
+        glGenRenderbuffers(1, &depthbuf_id);
         min_verticies = 0;
-        window_height = window_target.height();
-        window_width = window_target.width();
         connected = false;
 
         GLuint v_shader_id = glCreateShader(GL_VERTEX_SHADER);
@@ -346,10 +310,7 @@ namespace minigl
         std::string frag_shader_source = generate_shader_includes(frag_shader) + frag_shader.shader_body;
 
         shader_program_id = create_program(vert_shader_source, frag_shader_source);
-
-        generate_io(vert_shader);
-        generate_io(frag_shader);
-
+    
         generate_uniforms(vert_shader);
         generate_uniforms(frag_shader);
 
@@ -363,14 +324,8 @@ namespace minigl
         shader_program_id = old.shader_program_id;
         attribute_map = std::move(old.attribute_map);
         uniform_map = std::move(old.uniform_map);
-        output_map = std::move(old.output_map);
         texture_ids = std::move(old.texture_ids);
-        framebuffer_ids = std::move(old.framebuffer_ids);
-        depthbuffer_ids = std::move(old.depthbuffer_ids);
-        active_outputs = std::move(old.active_outputs);
         min_verticies = old.min_verticies;
-        window_width = old.window_width;
-        window_height = old.window_height;
         connected = old.connected;
         is_ok = true;
         old.is_ok = false;
@@ -388,14 +343,8 @@ namespace minigl
         {
             glDeleteTextures(1, &tex_id);
         }
-        for (auto buf_id : depthbuffer_ids)
-        {
-            glDeleteRenderbuffers(1, &buf_id);
-        }
-        for (auto buf_id : framebuffer_ids)
-        {
-            glDeleteFramebuffers(1, &buf_id);
-        }
+        glDeleteRenderbuffers(1, &depthbuf_id);
+        glDeleteFramebuffers(1, &framebuf_id);
         glDeleteProgram(shader_program_id);
         glDeleteVertexArrays(1, &vao_id);
     }
@@ -405,43 +354,8 @@ namespace minigl
         return is_ok;
     }
 
-    void render_pipeline::render_textures(void)
+    void render_pipeline::render_core(void)
     {
-        if (!is_ok) {
-            return;
-        }
-        for (auto &output : active_outputs) {
-            glBindFramebuffer(GL_FRAMEBUFFER, output.framebuf_id);
-            glViewport(0,0,output.tex_width,output.tex_height);
-            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-            glBindVertexArray(vao_id);
-            glUseProgram(shader_program_id);
-            int tex_count = texture_ids.size();
-            for (GLuint i = 0; i < tex_count; i++)
-            {
-                glActiveTexture(GL_TEXTURE0 + i);
-                glBindTexture(GL_TEXTURE_2D, texture_ids[i]);
-            }
-            int attr_size = attribute_map.size();
-            for (GLuint i = 0; i < attr_size; i++)
-            {
-                glEnableVertexAttribArray(i);
-            }
-            glDrawArrays(GL_TRIANGLES, 0, min_verticies);
-            for (GLuint i = 0; i < attr_size; i++)
-            {
-                glDisableVertexAttribArray(i);
-            }
-        }
-    }
-
-    void render_pipeline::render(void)
-    {
-        if (!is_ok) {
-            return;
-        }
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
-        glViewport(0, 0, window_width, window_height);
         glBindVertexArray(vao_id);
         glUseProgram(shader_program_id);
         int tex_count = texture_ids.size();
@@ -459,27 +373,39 @@ namespace minigl
         }
     }
 
-    void pipeline_connect(std::string r_name, render_pipeline &receiver,
-        std::string s_name, render_pipeline &sender,
+    void render_pipeline::render(pixels width, pixels height, float x_center, float y_center)
+    {
+        if (!is_ok) {
+            return;
+        }
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        glViewport(x_center, y_center, width.px, height.px);
+        render_core();
+    }
+
+    pipeline_bracket_helper render_pipeline::operator[](std::string name)
+    {
+        return pipeline_bracket_helper(name, this);
+    }
+
+    render_to_texture_helper render_pipeline::render_to_texture(pixels width, pixels height)
+    {
+        return render_to_texture_helper(this, width, height);
+    }
+
+    void render_to_texture(render_pipeline &receiver, std::string rname, render_pipeline &sender,
         pixels width, pixels height)
     {
-        if (width.px == 0 || height.px == 0)
-        {
-            width = receiver.window_width;
-            height = sender.window_height;
-        }
-        auto &s_node = sender.output_map.at(s_name);
-        auto &r_node = receiver.uniform_map.at(r_name);
-        if (r_node.type_id != std::type_index(typeid(texture)))
+        if (!receiver.is_ok) return;
+        auto node = receiver.uniform_map.at(rname);
+        if (node.type_id != std::type_index(typeid(texture)))
         {
             throw std::runtime_error("connect receiver must be texture");
-        }
-        s_node.tex_width = width.px;
-        s_node.tex_height = height.px;
+        };
 
-        glBindFramebuffer(GL_FRAMEBUFFER, s_node.framebuf_id);
+        glBindFramebuffer(GL_FRAMEBUFFER, sender.framebuf_id);
 
-        glBindTexture(GL_TEXTURE_2D, r_node.texture_id);
+        glBindTexture(GL_TEXTURE_2D, node.texture_id);
 
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width.px, height.px, 0, GL_RGB, GL_UNSIGNED_BYTE, 0);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
@@ -487,25 +413,24 @@ namespace minigl
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
-        glBindRenderbuffer(GL_RENDERBUFFER, s_node.depthbuf_id);
+        glBindRenderbuffer(GL_RENDERBUFFER, sender.depthbuf_id);
         glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, width.px, height.px);
-        glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, s_node.depthbuf_id);
+        glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, sender.depthbuf_id);
 
-        glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + s_node.tex_layout_pos, r_node.texture_id, 0);
+        glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, node.texture_id, 0);
 
-        std::vector<GLenum> draw_buffers(sender.framebuffer_ids.size());
-        int count = 0;
-        for (auto &b : draw_buffers) {
-            b = GL_COLOR_ATTACHMENT0 + count;
-            count++;
-        }
+        GLenum draw_buf = GL_COLOR_ATTACHMENT0;
         
-        glDrawBuffers(sender.framebuffer_ids.size(), draw_buffers.data());
+        glDrawBuffers(1, &draw_buf);
         if(glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
             throw std::runtime_error("error establishing framebuffer");
         }
-        sender.active_outputs.push_back(s_node);
         glUseProgram(receiver.shader_program_id);
-        glUniform1i(r_node.uniform_id, r_node.texture_num);
+        glUniform1i(node.uniform_id, node.texture_num);
+
+        glBindFramebuffer(GL_FRAMEBUFFER, sender.framebuf_id);
+        glViewport(0,0,width.px,height.px);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        sender.render_core();
     }
 }

@@ -25,6 +25,9 @@
 namespace minigl
 {
     class render_pipeline;
+    class texture;
+    class pipeline_bracket_helper;
+    class render_to_texture_helper;
 
     enum class colors
     {
@@ -129,20 +132,9 @@ namespace minigl
         void render();
     };
 
-    void pipeline_connect(std::string r_name, render_pipeline &receiver,
-        std::string s_name, render_pipeline &transmitter,
+    void render_to_texture(render_pipeline &receiver, std::string rname, render_pipeline &sender,
         pixels width = 0_px, pixels height = 0_px);
 
-    template <typename T>
-    concept valid_shader_io =
-        std::same_as<T, typename glm::vec2> ||
-        std::same_as<T, typename glm::vec3> ||
-        std::same_as<T, typename glm::vec4> ||
-        std::same_as<T, typename glm::mat3> ||
-        std::same_as<T, typename glm::mat4> ||
-        std::same_as<T, int> ||
-        std::same_as<T, color> ||
-        std::same_as<T, float>;
     template <typename T>
     concept valid_uniform =
         std::same_as<T, texture> ||
@@ -169,8 +161,6 @@ namespace minigl
     class shader
     {
     private:
-        std::map<std::string, std::type_index> input_map;
-        std::map<std::string, std::type_index> output_map;
         std::map<std::string, std::type_index> uniform_map;
         std::map<std::string, std::type_index> attribute_map;
         std::string shader_body;
@@ -178,18 +168,6 @@ namespace minigl
 
     public:
         shader(shader_types t) : type{t}, shader_body{""} {}
-        template <typename T>
-        requires valid_shader_io<T>
-        void add_input(std::string name)
-        {
-            input_map.insert({name, std::type_index(typeid(T))});
-        }
-        template <typename T>
-        requires valid_shader_io<T>
-        void add_output(std::string name)
-        {
-            output_map.insert({name, std::type_index(typeid(T))});
-        }
         template <typename T>
         requires valid_uniform<T>
         void add_uniform(std::string name)
@@ -232,32 +210,30 @@ namespace minigl
             GLuint framebuf_id;
             GLuint depthbuf_id;
         };
-        int window_width;
-        int window_height;
+        
         bool is_ok = false;
         bool connected = false;
         GLsizei min_verticies;
         GLuint vao_id;
         GLuint shader_program_id;
-        std::vector<output_node> active_outputs;
+        GLuint framebuf_id;
+        GLuint depthbuf_id;
         std::vector<GLuint> texture_ids;
-        std::vector<GLuint> framebuffer_ids;
-        std::vector<GLuint> depthbuffer_ids;
-        std::map<std::string, output_node> output_map;
         std::map<std::string, uniform_node> uniform_map;
         std::map<std::string, attribute_node> attribute_map;
         std::string generate_shader_includes(const shader &s);
         void generate_uniforms(const shader &s);
         void generate_attributes(const shader &s);
-        void generate_io(const shader &s);
+        void render_core(void);
 
     public:
         render_pipeline() = delete;
-        render_pipeline(const window& target_window, const shader &vert_shader, const shader &frag_shader);
+        render_pipeline(const shader &vert_shader, const shader &frag_shader);
         render_pipeline(const render_pipeline&) = delete;
         render_pipeline(render_pipeline&& old);
         ~render_pipeline();
         bool ok(void);
+        pipeline_bracket_helper operator[](std::string name);
         template <typename T>
             requires valid_uniform<T>
         void update_uniform(std::string name, const T &new_value)
@@ -328,11 +304,48 @@ namespace minigl
                 0,
                 (void *)0);
         }
-        void render(void);
-        void render_textures(void);
-        friend void pipeline_connect(std::string r_name, render_pipeline &receiver,
-        std::string s_name, render_pipeline &transmitter,
-            pixels width, pixels height);
+        void render(pixels width, pixels height, float x_center = 0, float y_center = 0);
+        render_to_texture_helper render_to_texture(pixels width, pixels height);
+        friend void render_to_texture(render_pipeline &receiver, std::string rname, render_pipeline &sender,
+        pixels width, pixels height);
+    };
+
+     class render_to_texture_helper
+    {
+    private:
+        render_pipeline *pipeline;
+        pixels width, height;
+        render_to_texture_helper(render_pipeline *p, pixels w, pixels h): pipeline{p}, width{w}, height{h}{};
+        friend class pipeline_bracket_helper;
+        friend class render_pipeline;
+    };
+
+    class pipeline_bracket_helper
+    {
+    private:
+        std::string name;
+        render_pipeline *pipeline;
+        pipeline_bracket_helper(std::string s, render_pipeline *p): name{s}, pipeline{p}{};
+        
+    public:
+        template <typename T>
+            requires valid_vertex_attribute<T>
+        pipeline_bracket_helper &operator=(const std::vector<T> &new_value)
+        {
+            pipeline->update_vertex_attr(name, new_value);
+            return *this;
+        }
+        template <typename T>
+            requires valid_uniform<T>
+        pipeline_bracket_helper &operator=(const T &new_value)
+        {
+            pipeline->update_uniform(name, new_value);
+            return *this;
+        }
+
+        pipeline_bracket_helper &operator=(render_to_texture_helper helper);
+        
+        friend class render_pipeline;
     };
 }
 

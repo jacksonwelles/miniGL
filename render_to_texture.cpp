@@ -119,19 +119,19 @@ int main(void)
     shader cube_vert_shader(shader_types::vertex);
     shader cube_frag_shader(shader_types::fragment);
     cube_vert_shader.add_attribute<vec3>("vertex_pos");
-    cube_vert_shader.add_output<color>("fragment_color");
     cube_vert_shader.add_attribute<color>("vertex_color");
     cube_vert_shader.add_uniform<mat4>("mvp");
     cube_vert_shader.define_shader(R"(
+        out vec3 fragment_color;
         void main() {
             gl_Position = mvp * vec4(vertex_pos, 1);
-            fragment_color = vertex_color;
+            fragment_color = vertex_color.rgb;
         }
     )");
 
-    cube_frag_shader.add_input<color>("fragment_color");
-    cube_frag_shader.add_output<vec3>("color");
     cube_frag_shader.define_shader(R"(
+        in vec3 fragment_color;
+        out vec3 color;
         void main() {
             color = fragment_color.rgb;
         }
@@ -148,8 +148,8 @@ int main(void)
 
     plane_vert_shader.add_attribute<vec3>("pos");
     plane_vert_shader.add_attribute<vec2>("uv");
-    plane_vert_shader.add_output<vec2>("frag_uv");
     plane_vert_shader.define_shader(R"(
+        out vec2 frag_uv;
         void main()
         {
             gl_Position = vec4(pos, 1);
@@ -159,9 +159,9 @@ int main(void)
     plane_frag_shader.add_uniform<int>("swap");
     plane_frag_shader.add_uniform<texture>("tex1");
     plane_frag_shader.add_uniform<texture>("tex2");
-    plane_frag_shader.add_output<vec3>("color");
-    plane_frag_shader.add_input<vec2>("frag_uv");
     plane_frag_shader.define_shader(R"(
+        in vec2 frag_uv;
+        out vec3 color;
         void main()
         {
             if (swap == 0) {
@@ -172,37 +172,35 @@ int main(void)
         }
     )");
 
-    render_pipeline cube(my_window, cube_vert_shader, cube_frag_shader);
-    cube.update_uniform("mvp", mvp);
-    cube.update_vertex_attr("vertex_pos", cube_verts);
-    cube.update_vertex_attr("vertex_color", cube_colors);
+    render_pipeline cube(cube_vert_shader, cube_frag_shader);
+    cube["mvp"] = mvp;
+    cube["vertex_pos"] = cube_verts;
+    cube["vertex_color"] = cube_colors;
 
-    render_pipeline cube2(my_window, cube_vert_shader, cube_frag_shader);
-    cube2.update_uniform("mvp", Projection * 
+    render_pipeline cube2(cube_vert_shader, cube_frag_shader);
+    cube2["mvp"] = Projection * 
         glm::lookAt(glm::vec3(6,7,8), glm::vec3(0,0,0), glm::vec3(0,1,0)) * 
-        Model);
-    cube2.update_vertex_attr("vertex_pos", cube_verts);
-    cube2.update_vertex_attr("vertex_color", cube_colors);
+        Model;
+    cube2["vertex_pos"] = cube_verts;
+    cube2["vertex_color"] = cube_colors;
 
 
-    render_pipeline plane(my_window, plane_vert_shader, plane_frag_shader);
-    plane.update_vertex_attr("pos", plane_buff);
-    plane.update_vertex_attr("uv", uvs);
+    render_pipeline plane(plane_vert_shader, plane_frag_shader);
+    plane["pos"] = plane_buff;
+    plane["uv"] = uvs;
 
     my_window.set_background_color(colors::black);
-    pipeline_connect("tex1", plane, "color", cube);
-    pipeline_connect("tex2", plane, "color", cube2, 400_px, 300_px);
-    cube.render_textures();
-    cube2.render_textures();
+    plane["tex1"] = cube.render_to_texture(my_window.width(), my_window.height());
+    plane["tex2"] = cube2.render_to_texture(400_px, 300_px);
     double last_time = glfwGetTime();
     int count = 0;
     my_window.render([&](){
         double current_time = glfwGetTime();
         if (current_time - last_time > 1) {
-            plane.update_uniform("swap", (count+1) % 2 );
+            plane["swap"] = (count+1) % 2 ;
             count++;
             last_time = current_time;
         }
-        plane.render();
+        plane.render(my_window.width(), my_window.height());
     });
 }
