@@ -1,10 +1,10 @@
 CC = g++
 CXXFLAGS = -std=c++20 -O2
-LDFLAGS = -lGL -lGLEW -lglfw3 -L/usr/local/lib
+LDFLAGS = -lGL -lGLEW -lglfw -L/usr/local/lib
 
 default: all
 
-all: minigl_cube standard_cube texture_demo render_to_texture game_of_life
+all: texture_demo render_to_texture sandbox demo2d
 
 game_of_life: game_of_life.o minigl.o
 	$(CC) -o game_of_life.exe game_of_life.o minigl.o $(LDFLAGS)
@@ -24,6 +24,12 @@ minigl_cube: minigl_cube.o minigl.o
 sandbox: sandbox.o minigl.o 
 	$(CC) -o sandbox.exe sandbox.o minigl.o $(LDFLAGS)
 
+demo2d: demo2d.o demo2d.o minigl2d.o minigl.o
+	$(CC) -o demo2d demo2d.o minigl2d.o minigl.o $(LDFLAGS)
+
+
+minigl2d.o: minigl2d.hpp
+demo2d.o: minigl2d.hpp
 texture_demo.o: minigl.hpp
 sandbox.o: minigl.hpp
 standard_cube.o: shader_loader.hpp
@@ -35,4 +41,4 @@ game_of_life.o: minigl.hpp
 clean:
 	rm -f *.exe *.exe.* *.o
 
-.PHONY: clean
+.PHONY: cleanCC = g++
