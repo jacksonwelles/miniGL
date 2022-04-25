@@ -211,7 +211,7 @@ namespace minigl
             std::vector<char> err_message(info_log_length + 1);
             glGetShaderInfoLog(shader_id, info_log_length, NULL, &err_message[0]);
             std::cerr << &err_message[0] << std::endl;
-            throw std::runtime_error("shader compilation failed");
+            throw std::runtime_error("shader compilation failed:" + shader_source);
         }
         return shader_id;
     }
@@ -294,6 +294,11 @@ namespace minigl
         }
     }
 
+    render_pipeline::render_pipeline()
+    {
+        is_ok = false;
+    }
+
     render_pipeline::render_pipeline(const shader &vert_shader, const shader &frag_shader)
     {
         glGenVertexArrays(1, &vao_id);
@@ -301,7 +306,6 @@ namespace minigl
         glGenFramebuffers(1, &framebuf_id);
         glGenRenderbuffers(1, &depthbuf_id);
         min_verticies = 0;
-        connected = false;
 
         GLuint v_shader_id = glCreateShader(GL_VERTEX_SHADER);
         GLuint f_shader_id = glCreateShader(GL_FRAGMENT_SHADER);
@@ -326,7 +330,6 @@ namespace minigl
         uniform_map = std::move(old.uniform_map);
         texture_ids = std::move(old.texture_ids);
         min_verticies = old.min_verticies;
-        connected = old.connected;
         is_ok = true;
         old.is_ok = false;
     }
@@ -396,37 +399,46 @@ namespace minigl
     void render_to_texture(render_pipeline &receiver, std::string rname, render_pipeline &sender,
         pixels width, pixels height)
     {
-        if (!receiver.is_ok) return;
+        if (!receiver.is_ok || !sender.is_ok) return;
         auto node = receiver.uniform_map.at(rname);
         if (node.type_id != std::type_index(typeid(texture)))
         {
             throw std::runtime_error("connect receiver must be texture");
         };
+        if (!sender.cache.is_connected || 
+            sender.cache.tex_id != node.texture_id ||
+            sender.cache.height != height.px ||
+            sender.cache.width != width.px)
+        {
+            sender.cache.is_connected = true;
+            sender.cache.tex_id = node.texture_id;
+            sender.cache.height = height.px;
+            sender.cache.width = width.px;
+            glBindFramebuffer(GL_FRAMEBUFFER, sender.framebuf_id);
 
-        glBindFramebuffer(GL_FRAMEBUFFER, sender.framebuf_id);
+            glBindTexture(GL_TEXTURE_2D, node.texture_id);
 
-        glBindTexture(GL_TEXTURE_2D, node.texture_id);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, width.px, height.px, 0, GL_RGB, GL_FLOAT, 0);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width.px, height.px, 0, GL_RGB, GL_UNSIGNED_BYTE, 0);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+            glBindRenderbuffer(GL_RENDERBUFFER, sender.depthbuf_id);
+            glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, width.px, height.px);
+            glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, sender.depthbuf_id);
 
-        glBindRenderbuffer(GL_RENDERBUFFER, sender.depthbuf_id);
-        glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, width.px, height.px);
-        glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, sender.depthbuf_id);
+            glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, node.texture_id, 0);
 
-        glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, node.texture_id, 0);
-
-        GLenum draw_buf = GL_COLOR_ATTACHMENT0;
-        
-        glDrawBuffers(1, &draw_buf);
-        if(glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
-            throw std::runtime_error("error establishing framebuffer");
+            GLenum draw_buf = GL_COLOR_ATTACHMENT0;
+            
+            glDrawBuffers(1, &draw_buf);
+            if(glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+                throw std::runtime_error("error establishing framebuffer");
+            }
+            glUseProgram(receiver.shader_program_id);
+            glUniform1i(node.uniform_id, node.texture_num);
         }
-        glUseProgram(receiver.shader_program_id);
-        glUniform1i(node.uniform_id, node.texture_num);
 
         glBindFramebuffer(GL_FRAMEBUFFER, sender.framebuf_id);
         glViewport(0,0,width.px,height.px);

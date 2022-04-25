@@ -4,7 +4,10 @@ LDFLAGS = -lGL -lGLEW -lglfw3 -L/usr/local/lib
 
 default: all
 
-all: minigl_cube standard_cube texture_demo render_to_texture game_of_life
+all: minigl_cube standard_cube texture_demo render_to_texture game_of_life fluids
+
+fluids: fluids.o minigl.o 
+	$(CC) -o fluids.exe fluids.o minigl.o $(LDFLAGS)
 
 game_of_life: game_of_life.o minigl.o
 	$(CC) -o game_of_life.exe game_of_life.o minigl.o $(LDFLAGS)
@@ -31,6 +34,7 @@ shader_loader.o: shader_loader.hpp
 minigl.o: minigl.hpp
 render_to_texture.o: minigl.hpp
 game_of_life.o: minigl.hpp
+fluids.o: minigl.hpp
 
 clean:
 	rm -f *.exe *.exe.* *.o

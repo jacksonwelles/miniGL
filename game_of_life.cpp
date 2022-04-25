@@ -8,6 +8,7 @@
 
 // Include GLM
 #include <glm/glm.hpp>
+#include <chrono>
 #include <glm/gtc/matrix_transform.hpp>
 
 using namespace glm;
@@ -133,6 +134,16 @@ int main(void)
     life_pipeline["tex"] = life_start;
     plane_pipeline["tex"] = life_pipeline.render_to_texture(width, height);
 
+    auto t0 = chrono::high_resolution_clock::now();
+    for (int i = 0; i < 1'000; i++)
+    {
+        life_pipeline["tex"] = plane_pipeline.render_to_texture(width, height);
+        plane_pipeline["tex"] = life_pipeline.render_to_texture(width, height);
+    }
+    auto t1 = chrono::high_resolution_clock::now();
+    chrono::duration<double, std::milli> dur = t1 - t0;
+    cout << dur.count() <<endl;
+    
     double last_time = glfwGetTime();
     my_window.render([&](){
         double current_time = glfwGetTime();
