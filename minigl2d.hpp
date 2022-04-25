@@ -12,28 +12,28 @@ namespace minigl
 const int DEFAULT_WIDTH = 400;
 const int DEFAULT_HEIGHT = 400;
 
-struct Position
+struct position
 {
-    Position();
-    Position(int x, int y);
+    position();
+    position(int x, int y);
     int x, y;
-    Position operator+(const Position& p);
-    Position operator-(const Position& p);
+    position operator+(const position& p);
+    position operator-(const position& p);
 };
 
 
-class Shape
+class shape
 {
 public:
-    Shape() = default;
-    Shape(std::vector<glm::vec3> base_vdata, std::vector<color> base_fdata, int unit_len);
-    void translate(Position pos);
-    void set_pos(Position pos);
-    Position get_pos();
+    shape() = default;
+    shape(std::vector<glm::vec3> base_vdata, std::vector<color> base_fdata, int unit_len);
+    void translate(position pos);
+    void set_pos(position pos);
+    position get_pos();
 protected:
     int window_width, window_height;
     int unit_len;   // pixel lenght of one unit of the base vertex data
-    Position pos;
+    position pos;
     minigl::shader vertex_shader = minigl::shader(minigl::shader_types::vertex);
     minigl::shader fragment_shader = minigl::shader(minigl::shader_types::fragment);
     // this is the buffer data that define the shape before any transformations 
@@ -48,35 +48,35 @@ protected:
     void fit_to_window();
     void scale_vData();
     void translate_vData(int xpos, int ypos);
-friend class Render2d;
+friend class render2d;
 };
 
-class Triangle : public Shape
+class triangle : public shape
 {
 public:
-    Triangle(int side_len); // equilateral
+    triangle(int side_len); // equilateral
 };
 
-class Circle : public Shape
+class circle : public shape
 {
 public:
-    Circle(int radius);
+    circle(int radius);
 };
 
-struct Window2d
+struct window2d
 {
-    Window2d(int width, int height, std::string name);
+    window2d(int width, int height, std::string name);
     int width, height;
     std::string name;
 };
 
-struct Render2d
+struct render2d
 {
     static void animate(
-        Window2d& win,
+        window2d& win,
         int fps,
-        std::vector<Shape> sprites,
-        std::function<std::vector<Shape>(std::vector<Shape>)> func);
+        std::vector<shape> sprites,
+        std::function<std::vector<shape>(std::vector<shape>)> func);
 };
 
 

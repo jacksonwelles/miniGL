@@ -8,33 +8,33 @@ using namespace glm;
 namespace minigl
 {
 
-Position::Position() : 
+position::position() : 
     x(0),
     y(0)
 {
 }
 
-Position::Position(int x, int y) : x(x), y(y)
+position::position(int x, int y) : x(x), y(y)
 {
 }
 
-Position Position::operator+(const Position& p)
+position position::operator+(const position& p)
 {
-    Position retP;
+    position retP;
     retP.x = this->x + p.x;
     retP.y = this->y + p.y;
     return retP;
 }
 
-Position Position::operator-(const Position& p)
+position position::operator-(const position& p)
 {
-    Position retP;
+    position retP;
     retP.x = this->x - p.x;
     retP.y = this->y - p.y;
     return retP;
 }
 
-Shape::Shape(std::vector<glm::vec3> base_vData, std::vector<color> base_fData, int unit_len) :
+shape::shape(std::vector<glm::vec3> base_vData, std::vector<color> base_fData, int unit_len) :
     base_vData(base_vData), 
     base_fData(base_fData),
     unit_len(unit_len)
@@ -62,14 +62,14 @@ Shape::Shape(std::vector<glm::vec3> base_vData, std::vector<color> base_fData, i
 }
 
 // scale the vertex buffer data in all of the shapes to fit the window
-void Shape::set_window_size(int width, int height)
+void shape::set_window_size(int width, int height)
 {
     window_width = width;
     window_height = height;
     fit_to_window();
 }
 
-Position Shape::get_pos()
+position shape::get_pos()
 {
     return pos;
 }
@@ -78,7 +78,7 @@ Position Shape::get_pos()
 // looks at the base_vData (default vertex buffer values) and scales
 // them to be of proper size given the window dimensions
 //
-void Shape::fit_to_window()
+void shape::fit_to_window()
 {
 	float aspect = (1.0f * window_width) / window_height;
 	mat4 scaling_mat;
@@ -98,7 +98,7 @@ void Shape::fit_to_window()
 //
 // scale the vertex buffer data in 2D by some factor
 //
-void Shape::scale_vData()
+void shape::scale_vData()
 {
 	float small = std::min(window_width, window_height) * 1.0f;
 	float ratio = unit_len / small;
@@ -114,7 +114,7 @@ void Shape::scale_vData()
 // translate the vertex buffer data by some number of pixels
 // this calculation depends on the current size of the window
 //
-void Shape::translate_vData(int xpos, int ypos)
+void shape::translate_vData(int xpos, int ypos)
 {
 	float xshift = (2.0f * xpos) / window_width;
 	float yshift = (2.0f * ypos) / window_height;
@@ -126,19 +126,19 @@ void Shape::translate_vData(int xpos, int ypos)
 	}
 }
 
-void Shape::translate(Position pos)
+void shape::translate(position pos)
 {
     this->pos = this->pos + pos;
     translate_vData(pos.x, pos.y);
 }
 
-void Shape::set_pos(Position pos)
+void shape::set_pos(position pos)
 {
     translate(pos - this->pos);
 }
 
-Triangle::Triangle(int side_len) :
-    Shape(
+triangle::triangle(int side_len) :
+    shape(
         std::vector<vec3> {
             {-1.0f, -1.0f,  0.0f},
             {1.0f,  -1.0f,  0.0f},
@@ -154,8 +154,8 @@ Triangle::Triangle(int side_len) :
 {
 }
 
-Circle::Circle(int radius) :
-    Shape(
+circle::circle(int radius) :
+    shape(
         std::vector<vec3> {
             {1.000f, 0.000f, 0.000f},
             {0.866f, 0.500f, 0.000f},
@@ -237,18 +237,18 @@ Circle::Circle(int radius) :
 {
 }
 
-Window2d::Window2d(int width, int height, std::string name) :
+window2d::window2d(int width, int height, std::string name) :
     width(width),
     height(height),
     name(name)
 {
 }
 
-void Render2d::animate(
-    Window2d& win,
+void render2d::animate(
+    window2d& win,
     int fps,
-    std::vector<Shape> shapes,
-    std::function<std::vector<Shape>(std::vector<Shape>)> func)
+    std::vector<shape> shapes,
+    std::function<std::vector<shape>(std::vector<shape>)> func)
 {
 	window my_window = window(pixels(win.width), pixels(win.height), win.name); 
     if (!my_window.ok()) 
@@ -258,9 +258,9 @@ void Render2d::animate(
     }
         
    	// scale the shapes appropriately given the window size 
-    for (Shape& shape : shapes) {
-        shape.set_window_size(win.width, win.height);
-        shape.scale_vData();
+    for (shape& s : shapes) {
+        s.set_window_size(win.width, win.height);
+        s.scale_vData();
     }
     
 	my_window.set_background_color(color(colors::forest_green));
@@ -276,10 +276,10 @@ void Render2d::animate(
         }
         
        	// render all of the shapes 
-        for (Shape& shape : shapes) {
-            render_pipeline p(shape.vertex_shader, shape.fragment_shader);
-            p.update_vertex_attr("vPosition", shape.vData);
-            p.update_vertex_attr("vColor", shape.fData);
+        for (shape& s : shapes) {
+            render_pipeline p(s.vertex_shader, s.fragment_shader);
+            p.update_vertex_attr("vPosition", s.vData);
+            p.update_vertex_attr("vColor", s.fData);
             p.render(win.width, win.height);
         }
     });
