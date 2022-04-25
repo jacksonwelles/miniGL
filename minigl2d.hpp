@@ -26,6 +26,7 @@ class shape
 {
 public:
     shape() = default;
+    shape(const shape& s): shape(s.base_vData, s.base_fData, s.unit_len){};
     shape(std::vector<glm::vec3> base_vdata, std::vector<color> base_fdata, int unit_len);
     void translate(position pos);
     void set_pos(position pos);

@@ -227,7 +227,7 @@ namespace minigl
         void render_core(void);
 
     public:
-        render_pipeline() = delete;
+        render_pipeline();
         render_pipeline(const shader &vert_shader, const shader &frag_shader);
         render_pipeline(const render_pipeline&) = delete;
         render_pipeline(render_pipeline&& old);

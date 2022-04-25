@@ -293,6 +293,11 @@ namespace minigl
             count++;
         }
     }
+    
+    render_pipeline::render_pipeline()
+    {
+        is_ok = false;
+    }
 
     render_pipeline::render_pipeline(const shader &vert_shader, const shader &frag_shader)
     {
