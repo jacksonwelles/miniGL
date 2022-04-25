@@ -43,6 +43,8 @@ protected:
     // per window size, etc.
     std::vector<glm::vec3> vData;
     std::vector<color> fData;
+
+    render_pipeline pipe;
     
     void set_window_size(int width, int height);
     void fit_to_window();
