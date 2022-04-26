@@ -232,6 +232,7 @@ namespace minigl
         render_pipeline(const render_pipeline&) = delete;
         render_pipeline(render_pipeline&& old);
         ~render_pipeline();
+        void init(const shader &vert_shader, const shader &frag_shader);
         bool ok(void);
         pipeline_bracket_helper operator[](std::string name);
         template <typename T>

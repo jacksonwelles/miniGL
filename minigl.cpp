@@ -301,26 +301,7 @@ namespace minigl
 
     render_pipeline::render_pipeline(const shader &vert_shader, const shader &frag_shader)
     {
-        glGenVertexArrays(1, &vao_id);
-        glBindVertexArray(vao_id);
-        glGenFramebuffers(1, &framebuf_id);
-        glGenRenderbuffers(1, &depthbuf_id);
-        min_verticies = 0;
-        connected = false;
-
-        GLuint v_shader_id = glCreateShader(GL_VERTEX_SHADER);
-        GLuint f_shader_id = glCreateShader(GL_FRAGMENT_SHADER);
-
-        std::string vert_shader_source = generate_shader_includes(vert_shader) + vert_shader.shader_body;
-        std::string frag_shader_source = generate_shader_includes(frag_shader) + frag_shader.shader_body;
-
-        shader_program_id = create_program(vert_shader_source, frag_shader_source);
-    
-        generate_uniforms(vert_shader);
-        generate_uniforms(frag_shader);
-
-        generate_attributes(vert_shader);
-        is_ok = true;
+        init(vert_shader, frag_shader);
     }
 
     render_pipeline::render_pipeline(render_pipeline &&old)
@@ -352,6 +333,31 @@ namespace minigl
         glDeleteFramebuffers(1, &framebuf_id);
         glDeleteProgram(shader_program_id);
         glDeleteVertexArrays(1, &vao_id);
+    }
+
+    void render_pipeline::init(const shader &vert_shader, const shader &frag_shader)
+    {
+        if (is_ok) return;
+        glGenVertexArrays(1, &vao_id);
+        glBindVertexArray(vao_id);
+        glGenFramebuffers(1, &framebuf_id);
+        glGenRenderbuffers(1, &depthbuf_id);
+        min_verticies = 0;
+        connected = false;
+
+        GLuint v_shader_id = glCreateShader(GL_VERTEX_SHADER);
+        GLuint f_shader_id = glCreateShader(GL_FRAGMENT_SHADER);
+
+        std::string vert_shader_source = generate_shader_includes(vert_shader) + vert_shader.shader_body;
+        std::string frag_shader_source = generate_shader_includes(frag_shader) + frag_shader.shader_body;
+
+        shader_program_id = create_program(vert_shader_source, frag_shader_source);
+    
+        generate_uniforms(vert_shader);
+        generate_uniforms(frag_shader);
+
+        generate_attributes(vert_shader);
+        is_ok = true;
     }
 
     bool render_pipeline::ok(void)
