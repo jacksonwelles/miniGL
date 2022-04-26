@@ -108,6 +108,7 @@ namespace minigl
         bool ok(void);
         int width(void) const {return window_width;}
         int height(void) const {return window_height;}
+        glm::vec2 cursor_pos(void);
         window(pixels width, pixels height, std::string name);
         ~window();
         window &operator=(const window &) = delete;

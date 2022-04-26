@@ -174,6 +174,12 @@ namespace minigl
         { return; };
         window::render(t);
     }
+    glm::vec2 window::cursor_pos(void)
+    {
+        double x, y;
+        glfwGetCursorPos(window_ptr, &x, &y);
+        return glm::vec2(x, y);
+    }
 
     pipeline_bracket_helper &pipeline_bracket_helper::operator=(render_to_texture_helper helper)
     {

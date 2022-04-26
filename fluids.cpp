@@ -40,7 +40,7 @@ void make_plane(render_pipeline &p)
 
 int main(void)
 {
-    window my_window = window(1080_px, 1080_px, "Tutorial"); 
+    window my_window = window(1024_px, 1024_px, "Tutorial"); 
     if (!my_window.ok()) {return 1;}
 
     shader pvert(shader_types::vertex);
@@ -58,6 +58,17 @@ int main(void)
     shader pfrag(shader_types::fragment);
     pfrag.add_uniform<texture>("tex");
     pfrag.define_shader(R"(
+        in vec2 frag_uv;
+        out vec3 color;
+        void main()
+        {
+            color = texture(tex, frag_uv).rgb;
+        }
+    )");
+
+    shader mult_frag(shader_types::fragment);
+    mult_frag.add_uniform<texture>("tex");
+    mult_frag.define_shader(R"(
         in vec2 frag_uv;
         out vec3 color;
         void main()
@@ -122,7 +133,7 @@ int main(void)
             vec4 wB = texture(velocity, frag_uv - vec2(0, texel_size.y));
             vec4 wT = texture(velocity, frag_uv + vec2(0, texel_size.y));
 
-            color.r = 0.5 * (texel_size.x * (wR.x - wL.x) + texel_size.y * (wT.y - wB.y))
+            color = vec3(0.5 * (texel_size.x * (wR.x - wL.x) + texel_size.y * (wT.y - wB.y)), 0, 0);
         }
     )");
 
@@ -135,13 +146,13 @@ int main(void)
         out vec3 color;
         void main()
         {
-            vec4 pL = texture(pressure, frag_uv - vec2(texel_size.x, 0)).x;
-            vec4 pR = texture(pressure, frag_uv + vec2(texel_size.x, 0)).x;
-            vec4 pB = texture(pressure, frag_uv - vec2(0, texel_size.y)).x;
-            vec4 pT = texture(pressure, frag_uv + vec2(0, texel_size.y)).x;
+            float pL = texture(pressure, frag_uv - vec2(texel_size.x, 0)).x;
+            float pR = texture(pressure, frag_uv + vec2(texel_size.x, 0)).x;
+            float pB = texture(pressure, frag_uv - vec2(0, texel_size.y)).x;
+            float pT = texture(pressure, frag_uv + vec2(0, texel_size.y)).x;
 
-            vec4 out = texture(velocity, frag_uv);
-            out.xy -= 0.5 * texel_size * vec2(pR - pL, pT- pB);
+            vec4 res = texture(velocity, frag_uv) - vec4(0.5 * texel_size * vec2(pR - pL, pT- pB), 0, 0);
+            color = res.rgb;
         }
     )");
 
@@ -158,7 +169,7 @@ int main(void)
             float s = 0;
             vec4 offset = vec4(texture(offset, frag_uv).xy * texel_size, 0, 0);
             if (offset.xy == vec2(0,0)) {
-                s = 1;
+                s = 1.0f;
             } else {
                 s = scale;
             }
@@ -183,32 +194,73 @@ int main(void)
         }
         
     )");
-    pixels w = 1080;//my_window.width();
-    pixels h = 1080;//my_window.height();
-    vec2 texel_size(1.0f/w.px, 1.0f/h.px);
-    vec2 point(h.px/2, w.px/2);
-    float radius = 150;
-    texture velocity(w, h, colors::black);
-    for (int i = 0; i < velocity.height(); i++) {
-        for (int j = 0; j < velocity.width(); j++) {
-            if (glm::distance(point, vec2(i, j)) < radius) {
-                vec2 center = vec2(i, j) - point;
-                velocity[i][j]= color(1,1, 0, 0);
+
+    shader advect_dye_shader(shader_types::fragment);
+    advect_dye_shader.add_uniform<texture>("velocity");
+    advect_dye_shader.add_uniform<texture>("dye");
+    advect_dye_shader.add_uniform<vec2>("dye_texel_size");
+    advect_dye_shader.add_uniform<vec2>("vel_texel_size");
+    advect_dye_shader.add_uniform<float>("timestep");
+    advect_dye_shader.define_shader(bilerp + R"(
+        in vec2 frag_uv;
+        out vec3 color;
+        void main()
+        {
+            vec2 pos = frag_uv - timestep * vel_texel_size * texBilerp(frag_uv, vel_texel_size, velocity).xy;
+            color = texBilerp(pos, dye_texel_size, dye).rgb;
+        }
+    )");
+
+    shader force_shader(shader_types::fragment);
+    force_shader.add_uniform<texture>("velocity");
+    force_shader.add_uniform<vec2>("location");
+    force_shader.add_uniform<vec2>("direction");
+    force_shader.add_uniform<float>("scale");
+    force_shader.add_uniform<float>("radius");
+    force_shader.define_shader(R"(
+        in vec2 frag_uv;
+        out vec3 color;
+        void main()
+        {
+            float dist = distance(location, frag_uv);
+            if (dist < radius)
+            {
+                color = vec3(texture(velocity, frag_uv).xy + direction * scale * ((radius - dist)/radius), 0);
+            }
+            else
+            {
+                color = vec3(texture(velocity, frag_uv)).rgb;
+            }
+        }
+    )");
+
+
+    pixels dye_w = 1024;
+    pixels dye_h = 1024;
+    float timescale = 1.0f;
+    float viscosity = 0.5;
+    pixels sim_w = 256;
+    pixels sim_h = 256;
+    vec2 sim_texel_size(1.0f/sim_w.px, 1.0f/sim_h.px);
+    vec2 dye_texel_size(1.0f/dye_w.px, 1.0f/dye_h.px);
+    vec2 dye_point(dye_h.px/2, dye_w.px/2);
+    vec2 sim_point(sim_h.px/2, sim_w.px/2);
+    float sim_radius = std::min(sim_h.px, sim_w.px) / 4.0f;
+    float dye_radius = std::min(dye_h.px, dye_w.px) / 4.0f;
+    texture velocity(sim_w, sim_h, colors::black);
+
+
+    texture dye(dye_w, dye_h, colors::black);
+    for (int i = 0; i < dye.height(); i++) {
+        for (int j = 0; j < dye.width(); j++) {
+            float dist = distance(dye_point, vec2(i,j));
+            if (dist < dye_radius) {
+                dye[i][j] = color(0, ((dye_radius - dist) / dye_radius), 1.0f);
             }
         }
     }
 
-
-    texture paint(w, h, colors::black);
-    for (int i = 0; i < paint.height(); i++) {
-        for (int j = 0; j < paint.width(); j++) {
-            if (glm::distance(point, vec2(i, j)) < radius) {
-                paint[i][j] = colors::blue;
-            }
-        }
-    }
-
-    texture boundary_offset(w, h, colors::black);
+    texture boundary_offset(sim_w, sim_h, colors::black);
     for (int i = 0; i < boundary_offset.height(); i++) {
         for (int j = 0; j < boundary_offset.width(); j++) {
             float x = 0;
@@ -227,71 +279,125 @@ int main(void)
         }
     }
 
-    float timescale = 0.5f;
-    float viscosity = 0.5f;
+    texture pressure_field(sim_w, sim_h, colors::black);
     render_pipeline v_tmp(pvert, pfrag);
+    render_pipeline d_tmp(pvert, pfrag);
     render_pipeline p_tmp(pvert, pfrag);
+    render_pipeline multer(pvert, mult_frag);
+    make_plane(multer);
     make_plane(v_tmp);
+    make_plane(d_tmp);
     make_plane(p_tmp);
-    p_tmp["tex"] = paint;
+    d_tmp["tex"] = dye;
     v_tmp["tex"] = velocity;
+    p_tmp["tex"] = pressure_field;
 
     render_pipeline boundary(pvert, boundary_shader);
     make_plane(boundary);
-    boundary["texel_size"] = texel_size;
+    boundary["texel_size"] = sim_texel_size;
     boundary["offset"] = boundary_offset;
 
     render_pipeline ad(pvert, advect_shader);
     make_plane(ad);
     ad["timestep"] = timescale;
-    ad["texel_size"] = texel_size;
+    ad["texel_size"] = sim_texel_size;
 
     render_pipeline jacobi(pvert, jacobi_shader);
     make_plane(jacobi);
-    jacobi["texel_size"] = texel_size;
+    jacobi["texel_size"] = sim_texel_size;
 
     render_pipeline divergence(pvert, divergence_shader);
     make_plane(divergence);
-    divergence["texel_size"] = texel_size;
-    
-    
+    divergence["texel_size"] = sim_texel_size;
+
+    render_pipeline gradient(pvert, gradient_shader);
+    make_plane(gradient);
+    gradient["texel_size"] = sim_texel_size;
+
+    render_pipeline dye_ad(pvert, advect_dye_shader);
+    make_plane(dye_ad);
+    dye_ad["dye_texel_size"] = dye_texel_size;
+    dye_ad["vel_texel_size"] = sim_texel_size;
+    dye_ad["timestep"] = timescale; 
+
+    render_pipeline apply_force(pvert, force_shader);
+    make_plane(apply_force);
+    apply_force["scale"] = 7.0f;
+    apply_force["radius"] = (sim_radius / 6) * sim_texel_size.x;
+
+
+    cout << dye_w.px << endl;
+    cout << dye_h.px << endl;
     double last = glfwGetTime();
     int nframes = 0;
+    vec2 pos = my_window.cursor_pos();
+    vec2 last_pos = vec2(std::min(std::max(pos.x / my_window.width(), 0.0f), 1.0f),
+                         1.0f - std::min(std::max(pos.y /my_window.height(), 0.0f), 1.0f));
     my_window.render([&](){
         double current = glfwGetTime();
+        pos = my_window.cursor_pos();
+        pos = vec2(std::min(std::max(pos.x / my_window.width(), 0.0f), 1.0f),
+                   1.0f - std::min(std::max(pos.y /my_window.height(), 0.0f), 1.0f));
         if (current - last > 2)
         {
+            double x, y;
             last = current;
             cout << "between frames: " << 1000.0/ double(nframes) <<" ms" <<endl;
+            vec2 pos = my_window.cursor_pos();
+            cout << "x: " << pos.x << ", y: " << pos.y << endl;
             nframes = 0;
         }
         nframes++;
         boundary["scale"] = -1.0f;
-        boundary["target"] = v_tmp.render_to_texture(w,h);
-        v_tmp["tex"] = boundary.render_to_texture(w,h);
+        boundary["target"] = v_tmp.render_to_texture(sim_w,sim_h);
+        v_tmp["tex"] = boundary.render_to_texture(sim_w,sim_h);
 
-        ad["velocity"] = v_tmp.render_to_texture(w,h);
-        ad["target"] = v_tmp.render_to_texture(w, h);
-        v_tmp["tex"] = ad.render_to_texture(w, h);
+        ad["velocity"] = v_tmp.render_to_texture(sim_w,sim_h);
+        ad["target"] = v_tmp.render_to_texture(sim_w, sim_h);
+        v_tmp["tex"] = ad.render_to_texture(sim_w, sim_h);
 
-        vec2 alpha = (texel_size * texel_size) / (viscosity * timescale);
+        dye_ad["velocity"] = v_tmp.render_to_texture(sim_w, sim_h);
+        dye_ad["dye"] = d_tmp.render_to_texture(dye_w, dye_h);
+        d_tmp["tex"] = dye_ad.render_to_texture(dye_w, dye_h);
+
+        vec2 alpha = (1.0f / (sim_texel_size * sim_texel_size)) / (viscosity * timescale);
         jacobi["alpha"] = alpha;
         jacobi["rBeta"] = 1.0f / (alpha + vec2(4,4));
         
-        for (int i = 0; i < 20; i++)
+        jacobi["b"] = v_tmp.render_to_texture(sim_w,sim_h);
+        for (int i = 0; i < 30; i++)
         {
-            jacobi["b"] = v_tmp.render_to_texture(w,h);
-            jacobi["x"] = v_tmp.render_to_texture(w,h);
-            v_tmp["tex"] = jacobi.render_to_texture(w,h);
+           
+            jacobi["x"] = v_tmp.render_to_texture(sim_w,sim_h);
+            v_tmp["tex"] = jacobi.render_to_texture(sim_w,sim_h);
+        }
+        apply_force["velocity"] = v_tmp.render_to_texture(sim_w, sim_h);
+        apply_force["location"] = pos;
+        apply_force["direction"] = pos - last_pos;
+
+        v_tmp["tex"] = apply_force.render_to_texture(sim_w, sim_h);
+        divergence["velocity"] = v_tmp.render_to_texture(sim_w,sim_h);
+        jacobi["b"] = divergence.render_to_texture(sim_w,sim_h);
+        jacobi["alpha"] = -1.0f * (1.0f / (sim_texel_size * sim_texel_size));
+        jacobi["rBeta"] = vec2(0.25f, 0.25f);
+
+        boundary["scale"] = 1.0f;
+        boundary["target"] = pressure_field;
+        for (int i = 0; i < 40; i++)
+        {
+            jacobi["x"] = boundary.render_to_texture(sim_w,sim_h);
+            boundary["target"] = jacobi.render_to_texture(sim_w,sim_h);
         }
 
+        
+        gradient["pressure"] = boundary.render_to_texture(sim_w,sim_h);
+        boundary["scale"] = -1.0f;
+        boundary["target"] = v_tmp.render_to_texture(sim_w, sim_h);
+        gradient["velocity"] = boundary.render_to_texture(sim_w, sim_h);
+        v_tmp["tex"] = gradient.render_to_texture(sim_w,sim_h);
 
-
-
-        ad["velocity"] = v_tmp.render_to_texture(w,h);
-        ad["target"] = p_tmp.render_to_texture(w,h);
-        p_tmp["tex"] = ad.render_to_texture(w,h);
-        p_tmp.render(my_window.width(), my_window.height());
+        d_tmp.render(my_window.width(), my_window.height());
+        last_pos = pos;
     });
     
 
