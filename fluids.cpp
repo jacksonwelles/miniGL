@@ -325,9 +325,6 @@ int main(void)
     apply_force["scale"] = 7.0f;
     apply_force["radius"] = (sim_radius / 6) * sim_texel_size.x;
 
-
-    cout << dye_w.px << endl;
-    cout << dye_h.px << endl;
     double last = glfwGetTime();
     int nframes = 0;
     vec2 pos = my_window.cursor_pos();
@@ -343,8 +340,6 @@ int main(void)
             double x, y;
             last = current;
             cout << "between frames: " << 1000.0/ double(nframes) <<" ms" <<endl;
-            vec2 pos = my_window.cursor_pos();
-            cout << "x: " << pos.x << ", y: " << pos.y << endl;
             nframes = 0;
         }
         nframes++;
