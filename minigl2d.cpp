@@ -53,6 +53,14 @@ void shape::set_pos(position pos)
     translate(pos - this->pos);
 }
 
+std::vector<color> get_color_vec(color col, int size)
+{
+    std::vector<color> vec;
+    for (int i = 0; i < size; i++)
+        vec.push_back({ col.red(), col.green(), col.blue()});
+    return vec;
+}
+
 shape::shape(std::vector<glm::vec3> base_vertices, std::vector<color> base_fragments, pixels unit_len, position pos) :
     base_vertices(base_vertices),
     base_fragments(base_fragments),
@@ -99,7 +107,7 @@ triangle::triangle(pixels side_len) :
 {
 }
 
-circle::circle(pixels radius, position pos) :
+circle::circle(pixels radius, color col, position pos) :
     shape(
         std::vector<vec3> {
             {1.000f, 0.000f, 0.000f},
@@ -157,70 +165,57 @@ circle::circle(pixels radius, position pos) :
             {1.000f, -0.000f, 0.000f},
             {0.000f, 0.000f, 0.000f},
         }, 
-        std::vector<color> {
-            {1.000f, 0.000f, 0.000f},
-            {1.000f, 0.000f, 0.000f},
-            {1.000f, 0.000f, 0.000f},
-            {1.000f, 0.000f, 0.000f},
-            {1.000f, 0.000f, 0.000f},
-            {1.000f, 0.000f, 0.000f},
-            {1.000f, 0.000f, 0.000f},
-            {1.000f, 0.000f, 0.000f},
-            {1.000f, 0.000f, 0.000f},
-            {1.000f, 0.000f, 0.000f},
-            {1.000f, 0.000f, 0.000f},
-            {1.000f, 0.000f, 0.000f},
-            {1.000f, 0.000f, 0.000f},
-            {1.000f, 0.000f, 0.000f},
-            {1.000f, 0.000f, 0.000f},
-            {1.000f, 0.000f, 0.000f},
-            {1.000f, 0.000f, 0.000f},
-            {1.000f, 0.000f, 0.000f},
-            {1.000f, 0.000f, 0.000f},
-            {1.000f, 0.000f, 0.000f},
-            {1.000f, 0.000f, 0.000f},
-            {1.000f, 0.000f, 0.000f},
-            {1.000f, 0.000f, 0.000f},
-            {1.000f, 0.000f, 0.000f},
-            {1.000f, 0.000f, 0.000f},
-            {1.000f, 0.000f, 0.000f},
-            {1.000f, 0.000f, 0.000f},
-            {1.000f, 0.000f, 0.000f},
-            {1.000f, 0.000f, 0.000f},
-            {1.000f, 0.000f, 0.000f},
-            {1.000f, 0.000f, 0.000f},
-            {1.000f, 0.000f, 0.000f},
-            {1.000f, 0.000f, 0.000f},
-            {1.000f, 0.000f, 0.000f},
-            {1.000f, 0.000f, 0.000f},
-            {1.000f, 0.000f, 0.000f},
-            {1.000f, 0.000f, 0.000f},
-            {1.000f, 0.000f, 0.000f},
-            {1.000f, 0.000f, 0.000f},
-            {1.000f, 0.000f, 0.000f},
-            {1.000f, 0.000f, 0.000f},
-            {1.000f, 0.000f, 0.000f},
-            {1.000f, 0.000f, 0.000f},
-            {1.000f, 0.000f, 0.000f},
-            {1.000f, 0.000f, 0.000f},
-            {1.000f, 0.000f, 0.000f},
-            {1.000f, 0.000f, 0.000f},
-            {1.000f, 0.000f, 0.000f},
-            {1.000f, 0.000f, 0.000f},
-            {1.000f, 0.000f, 0.000f},
-            {1.000f, 0.000f, 0.000f},
-            {1.000f, 0.000f, 0.000f},
-            {1.000f, 0.000f, 0.000f},
-            {1.000f, 0.000f, 0.000f},
-        },
+        get_color_vec(col, 54),
         pixels(2 * radius.px),
         pos
     )
 {
 }
 
+circle::circle(pixels radius, color col) :
+    circle(radius, col, position(0,0))
+{
+}
+
 circle::circle(pixels radius) :
-    circle(radius, position(0,0))
+    circle(radius, color(colors::red), position(0,0))
+{
+}
+
+circle::circle(pixels radius, position pos) :
+    circle(radius, color(colors::red), pos)
+{
+}
+
+rectangle::rectangle(pixels width, pixels height, color col, position pos) :
+    shape(
+        std::vector<vec3> {
+            {-1.0f, 1.0f * height.px/width.px, 0.0f},
+            {-1.0f,  -1.0f * height.px/width.px, 0.0f},
+            {1.0f,  -1.0f * height.px/width.px, 0.0f},
+            {1.0f, 1.0f * height.px/width.px, 0.0f},
+            {-1.0f, 1.0f * height.px/width.px, 0.0f},
+            {1.0f,  -1.0f * height.px/width.px, 0.0f},
+        }, 
+        get_color_vec(col, 6),
+        pixels(width),
+        pos
+    )
+{
+}
+    
+rectangle::rectangle(pixels width, pixels height) : 
+    rectangle(width, height, colors::red, position(0,0))
+{
+}
+
+rectangle::rectangle(pixels width, pixels height, color col) : 
+    rectangle(width, height, col, position(0,0))
+{
+}
+
+rectangle::rectangle(pixels width, pixels height, position pos) : 
+    rectangle(width, height, colors::red, pos)
 {
 }
 

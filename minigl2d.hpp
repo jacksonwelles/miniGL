@@ -70,14 +70,18 @@ class circle : public shape
 {
 public:
     circle(pixels radius);
+    circle(pixels radius, color col);
+    circle(pixels radius, color col, position pos);
     circle(pixels radius, position pos);
 };
 
 class rectangle : public shape
 {
 public:
+    rectangle(pixels width, pixels height, color col, position pos);
     rectangle(pixels width, pixels height);
-    rectangle(pixels side_len); // square
+    rectangle(pixels width, pixels height, color col);
+    rectangle(pixels width, pixels height, position pos);
 protected:
 };
 
