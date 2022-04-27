@@ -318,7 +318,7 @@ namespace minigl
         uniform_map = std::move(old.uniform_map);
         texture_ids = std::move(old.texture_ids);
         min_verticies = old.min_verticies;
-        is_ok = true;
+        is_ok = old.is_ok;
         old.is_ok = false;
     }
 

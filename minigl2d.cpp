@@ -265,7 +265,7 @@ void render2d::animate(
     window2d& win,
     int fps,
     std::vector<shape> shapes,
-    std::function<std::vector<shape>(std::vector<shape>, events)> func)
+    std::function<void(std::vector<shape>&, events)> func)
 {
     // init this window, must do this first so that we can have the context for the other 
     // opengl functionality
@@ -276,28 +276,36 @@ void render2d::animate(
     double interval = 1.0 / fps;
 	
     double prev_time = glfwGetTime();
+
+    double print_last_time = prev_time;
+    int nframes = 0;
     
     my_window.render_and_listen(key_callback, cursor_callback,
     [&]{
         double curr_time = glfwGetTime();
         if (curr_time - prev_time > interval) {
-            std::cout << "frame interval = " << curr_time - prev_time << "\n";
             prev_time = curr_time;
             events e;
             for (int i = 0; i < NUM_KEYS; i++)
                 e.pressed_keys[i] = noticed_keys[i];
             e.cursor_pos = cursor_pos;
 
-            shapes = func(shapes, e);
+            func(shapes, e);
             
             for (int i = 0; i < NUM_KEYS; i++)
                 noticed_keys[i] = pressed_keys[i] && noticed_keys[i];
         }
-        
+        if (curr_time - print_last_time > 1)
+        {
+            std::cout << "between frames: " << 1000.0f / nframes << " ms" <<std::endl;
+            print_last_time = curr_time;
+            nframes = 0;
+        }
         // render all of the shapes 
         for (shape& s : shapes) {
             s.render(win.width, win.height);
         }
+        nframes++;
     });
 
 }

@@ -17,7 +17,7 @@ int main()
     int vel = 0;
     int fps = 60;
     render2d::animate(my_win, fps, initial_world, 
-    [&](std::vector<shape> world, events e) {
+    [&](std::vector<shape> &world, events e) {
         int dt = 1;
         shape& ball = world[0];
         int relative_pos = ball.get_pos().y - radius + height/2;
@@ -27,8 +27,6 @@ int main()
         }
         vel = vel - g * dt;
         ball.set_pos(position(0, ball.get_pos().y + (vel - g * dt) * dt));
-        
-        return world;
     });
 }
 

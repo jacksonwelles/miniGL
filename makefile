@@ -38,10 +38,10 @@ follow_cursor: follow_cursor.o minigl2d.o minigl.o
 	$(CC) -o follow_cursor.exe follow_cursor.o minigl2d.o minigl.o $(LDFLAGS)
 
 
-follow_cursor: minigl2d.hpp
-simple_move: minigl2d.hpp
-bouncing_ball.o: minigl2d.hpp
-minigl2d.o: minigl2d.hpp
+follow_cursor: minigl2d.hpp minigl.hpp
+simple_move: minigl2d.hpp minigl.hpp
+bouncing_ball.o: minigl2d.hpp minigl.hpp
+minigl2d.o: minigl2d.hpp minigl.hpp
 texture_demo.o: minigl.hpp
 sandbox.o: minigl.hpp
 standard_cube.o: shader_loader.hpp

@@ -10,7 +10,7 @@ int main()
     std::vector<shape> initial_world { rectangle(100_px, 200_px, colors::cyan) };
 
     render2d::animate(my_win, 30, initial_world, 
-    [&](std::vector<shape> world, events e) {
+    [&](std::vector<shape> &world, events e) {
         if (e.pressed_keys[A_KEY])
             world[0].translate(position(-6, 0));
         if (e.pressed_keys[D_KEY])
@@ -19,6 +19,5 @@ int main()
             world[0].translate(position(0, 6));
         if (e.pressed_keys[S_KEY])
             world[0].translate(position(0, -6));
-        return world;
     });
 }

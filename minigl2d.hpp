@@ -31,7 +31,7 @@ class shape
 {
 public:
     shape() = delete;
-    
+    shape(shape &&s) = default;
     shape
     (
         std::vector<glm::vec3> base_vertices,
@@ -102,7 +102,7 @@ public:
         window2d& win,
         int fps,
         std::vector<shape> sprites,
-        std::function<std::vector<shape>(std::vector<shape>, events)> func);
+        std::function<void(std::vector<shape>&, events)> func);
 };
 
 
