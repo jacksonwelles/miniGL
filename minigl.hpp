@@ -129,6 +129,24 @@ namespace minigl
             } while (glfwGetKey(window_ptr, GLFW_KEY_ESCAPE) != GLFW_PRESS &&
                      glfwWindowShouldClose(window_ptr) == 0);
         }
+        template <typename C, typename... R>
+        requires std::invocable<C, R...>
+        void render_and_listen(GLFWkeyfun callback, C oper, R &&...args)
+        {
+            do
+            {
+                glBindFramebuffer(GL_FRAMEBUFFER, 0);
+                glViewport(0, 0, window_width, window_height);
+                glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+                oper(std::forward<R>(args)...);
+                // Swap buffers
+                glfwSwapBuffers(window_ptr);
+                glfwPollEvents();
+                glfwSetKeyCallback(window_ptr, callback);
+            } while (glfwGetKey(window_ptr, GLFW_KEY_ESCAPE) != GLFW_PRESS &&
+                     glfwWindowShouldClose(window_ptr) == 0);
+        }
         void render();
     };
 

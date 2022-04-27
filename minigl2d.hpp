@@ -9,8 +9,13 @@
 namespace minigl
 {
 
-const int DEFAULT_WIDTH = 400;
-const int DEFAULT_HEIGHT = 400;
+const int NUM_KEYS = 104;
+const int E_KEY = 0;
+const int A_KEY = 1;
+const int D_KEY = 2;
+const int W_KEY = 3;
+const int S_KEY = 4;
+const std::vector<int> GLFW_KEYS = { GLFW_KEY_E, GLFW_KEY_A, GLFW_KEY_D, GLFW_KEY_W, GLFW_KEY_S};
 
 struct position
 {
@@ -68,13 +73,28 @@ public:
     circle(pixels radius, position pos);
 };
 
-struct render2d
+class rectangle : public shape
 {
+public:
+    rectangle(pixels width, pixels height);
+    rectangle(pixels side_len); // square
+protected:
+};
+
+struct events
+{
+    bool pressed_keys[NUM_KEYS];
+    position mouse_pos;
+};
+
+class render2d
+{
+public:
     static void animate(
         window2d& win,
         int fps,
         std::vector<shape> sprites,
-        std::function<std::vector<shape>(std::vector<shape>)> func);
+        std::function<std::vector<shape>(std::vector<shape>, events)> func);
 };
 
 
