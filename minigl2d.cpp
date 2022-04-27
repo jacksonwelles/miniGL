@@ -8,6 +8,10 @@ using namespace glm;
 namespace minigl
 {
 
+// TODO: these are globals! figure out a way to get rid of this is possible!
+bool pressed_keys[NUM_KEYS];
+bool noticed_keys[NUM_KEYS];
+
 position::position() : 
     x(0),
     y(0)
@@ -228,11 +232,23 @@ window2d::window2d(pixels width, pixels height, color col, std::string name) :
 {
 }
 
+void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
+{
+    for (int i = 0; i < GLFW_KEYS.size(); i++) {
+        if (key == GLFW_KEYS[i] && action == GLFW_PRESS) {
+            pressed_keys[i] = true;
+            noticed_keys[i] = true;
+        } else if (key == GLFW_KEYS[i] && action == GLFW_RELEASE) {
+            pressed_keys[i] = false;
+        }
+    }
+}
+
 void render2d::animate(
     window2d& win,
     int fps,
     std::vector<shape> shapes,
-    std::function<std::vector<shape>(std::vector<shape>)> func)
+    std::function<std::vector<shape>(std::vector<shape>, events)> func)
 {
     // init this window, must do this first so that we can have the context for the other 
     // opengl functionality
@@ -252,11 +268,20 @@ void render2d::animate(
     else
         scaled = scale(mat4(1.0f), vec3(1.0f,aspect,0.0f));
     
-    my_window.render([&]{
+    
+    my_window.render_and_listen(key_callback,
+    [&]{
         double curr_time = glfwGetTime();
         if (curr_time - prev_time > interval) {
             prev_time = curr_time;
-            shapes = func(shapes);
+            events e;
+            for (int i = 0; i < NUM_KEYS; i++)
+                e.pressed_keys[i] = noticed_keys[i];
+
+            shapes = func(shapes, e);
+            
+            for (int i = 0; i < NUM_KEYS; i++)
+                noticed_keys[i] = pressed_keys[i] && noticed_keys[i];
         }
         
         // render all of the shapes 

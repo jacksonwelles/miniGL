@@ -17,7 +17,7 @@ int main()
     int vel = 0;
     int fps = 60;
     render2d::animate(my_win, fps, initial_world, 
-    [&](std::vector<shape> world) {
+    [&](std::vector<shape> world, events e) {
         int dt = 1;
         shape& ball = world[0];
         int relative_pos = ball.get_pos().y - radius + height/2;

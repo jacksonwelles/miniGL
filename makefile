@@ -4,7 +4,7 @@ LDFLAGS = -lGL -lGLEW -lglfw -L/usr/local/lib
 
 default: all
 
-all: bouncing_ball
+all: bouncing_ball simple_move
 
 game_of_life: game_of_life.o minigl.o
 	$(CC) -o game_of_life.exe game_of_life.o minigl.o $(LDFLAGS)
@@ -27,7 +27,11 @@ sandbox: sandbox.o minigl.o
 bouncing_ball: bouncing_ball.o minigl2d.o minigl.o 
 	$(CC) -o bouncing_ball bouncing_ball.o minigl2d.o minigl.o $(LDFLAGS)
 
+simple_move: simple_move.o minigl2d.o minigl.o
+	$(CC) -o simple_move simple_move.o minigl2d.o minigl.o $(LDFLAGS)
 
+
+simple_move: minigl2d.hpp
 bouncing_ball.o: minigl2d.hpp
 minigl2d.o: minigl2d.hpp
 texture_demo.o: minigl.hpp
