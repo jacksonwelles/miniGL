@@ -33,7 +33,13 @@ class shape
 {
 public:
     shape() = delete;
-    shape(std::vector<glm::vec3> base_vertices, std::vector<color> base_fragments, pixels unit_len);
+    shape
+    (
+        std::vector<glm::vec3> base_vertices,
+        std::vector<color> base_fragments,
+        pixels unit_len,
+        position pos
+    );
     void translate(position pos);
     void set_pos(position pos);
     position get_pos();
@@ -42,8 +48,8 @@ protected:
     position pos;
     std::vector<glm::vec3> base_vertices;
     std::vector<color> base_fragments;
-    bool has_window;
-    render_pipeline pipe;
+    minigl::shader vertex_shader = minigl::shader(minigl::shader_types::vertex);
+    minigl::shader fragment_shader = minigl::shader(minigl::shader_types::fragment);
     int window_width, window_height;
     void scale_and_translate_base(position pos);
 friend class render2d;
@@ -52,7 +58,14 @@ friend class render2d;
 class triangle : public shape
 {
 public:
-    triangle(int side_len); // equilateral
+    triangle(pixels side_len); // equilateral
+};
+
+class circle : public shape
+{
+public:
+    circle(pixels radius);
+    circle(pixels radius, position pos);
 };
 
 struct render2d
