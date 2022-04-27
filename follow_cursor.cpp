@@ -7,7 +7,16 @@ using namespace glm;
 int main()
 {
     window2d my_win(1200_px, 800_px, color(colors::forest_green), "Follow Cursor Demo");
-    std::vector<shape> initial_world { circle(50_px, colors::light_blue), };
+    std::vector<shape> initial_world { 
+        circle(50_px, colors::light_blue), 
+        circle(50_px, colors::light_blue), 
+        circle(50_px, colors::light_blue), 
+        circle(50_px, colors::light_blue), 
+        circle(50_px, colors::light_blue), 
+        circle(50_px, colors::light_blue), 
+        circle(50_px, colors::light_blue), 
+        circle(50_px, colors::light_blue), 
+    };
     
     render2d::animate(my_win, 60, initial_world, 
     [&](std::vector<shape> world, events e) {

@@ -281,6 +281,7 @@ void render2d::animate(
     [&]{
         double curr_time = glfwGetTime();
         if (curr_time - prev_time > interval) {
+            std::cout << "frame interval = " << curr_time - prev_time << "\n";
             prev_time = curr_time;
             events e;
             for (int i = 0; i < NUM_KEYS; i++)
