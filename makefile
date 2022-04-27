@@ -4,7 +4,7 @@ LDFLAGS = -lGL -lGLEW -lglfw -L/usr/local/lib
 
 default: all
 
-all: texture_demo render_to_texture sandbox demo2d
+all: bouncing_ball
 
 game_of_life: game_of_life.o minigl.o
 	$(CC) -o game_of_life.exe game_of_life.o minigl.o $(LDFLAGS)
@@ -24,12 +24,12 @@ minigl_cube: minigl_cube.o minigl.o
 sandbox: sandbox.o minigl.o 
 	$(CC) -o sandbox.exe sandbox.o minigl.o $(LDFLAGS)
 
-demo2d: demo2d.o demo2d.o minigl2d.o minigl.o
-	$(CC) -o demo2d demo2d.o minigl2d.o minigl.o $(LDFLAGS)
+bouncing_ball: bouncing_ball.o minigl2d.o minigl.o 
+	$(CC) -o bouncing_ball bouncing_ball.o minigl2d.o minigl.o $(LDFLAGS)
 
 
+bouncing_ball.o: minigl2d.hpp
 minigl2d.o: minigl2d.hpp
-demo2d.o: minigl2d.hpp
 texture_demo.o: minigl.hpp
 sandbox.o: minigl.hpp
 standard_cube.o: shader_loader.hpp

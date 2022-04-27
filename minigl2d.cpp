@@ -8,44 +8,63 @@ using namespace glm;
 namespace minigl
 {
 
-Position::Position() : 
+position::position() : 
     x(0),
     y(0)
 {
 }
 
-Position::Position(int x, int y) : x(x), y(y)
+position::position(int x, int y) : x(x), y(y)
 {
 }
 
-Position Position::operator+(const Position& p)
+position position::operator+(const position& p)
 {
-    Position retP;
+    position retP;
     retP.x = this->x + p.x;
     retP.y = this->y + p.y;
     return retP;
 }
 
-Position Position::operator-(const Position& p)
+position position::operator-(const position& p)
 {
-    Position retP;
+    position retP;
     retP.x = this->x - p.x;
     retP.y = this->y - p.y;
     return retP;
 }
 
-Shape::Shape(std::vector<glm::vec3> base_vData, std::vector<color> base_fData, int unit_len) :
-    base_vData(base_vData), 
-    base_fData(base_fData),
-    unit_len(unit_len)
+position shape::get_pos()
 {
-    // define default vertex and fragment shaders
+    return pos;
+}
+
+void shape::translate(position pos)
+{
+    this->pos = this->pos + pos;
+}
+
+void shape::set_pos(position pos)
+{
+    translate(pos - this->pos);
+}
+
+shape::shape(std::vector<glm::vec3> base_vertices, std::vector<color> base_fragments, pixels unit_len, position pos) :
+    base_vertices(base_vertices),
+    base_fragments(base_fragments),
+    unit_len(unit_len),
+    pos(pos)
+{
+    // for this constructor just predefine the vertex and fragment scripts
+    // define default vertex and fragment shaders, we would want another constructor eventually
+    // that allows for custom vertex and fragment shaders
 	vertex_shader.add_attribute<glm::vec3>("vPosition");
 	vertex_shader.add_attribute<color>("vColor");
+    vertex_shader.add_uniform<glm::mat4>("MVP");
     vertex_shader.define_shader(R"(
 		out vec3 fColor;
         void main() {
-            gl_Position = vec4(vPosition, 1.0);
+            gl_Position = MVP * vec4(vPosition, 1.0);
 			fColor = vColor.rgb;
         }    
     )");
@@ -56,89 +75,10 @@ Shape::Shape(std::vector<glm::vec3> base_vData, std::vector<color> base_fData, i
             color = fColor;
         }
     )");
-    // for now set fData to the base_fData
-    fData = base_fData;
-    set_window_size(DEFAULT_WIDTH, DEFAULT_HEIGHT);
 }
 
-// scale the vertex buffer data in all of the shapes to fit the window
-void Shape::set_window_size(int width, int height)
-{
-    window_width = width;
-    window_height = height;
-    fit_to_window();
-}
-
-Position Shape::get_pos()
-{
-    return pos;
-}
-
-//
-// looks at the base_vData (default vertex buffer values) and scales
-// them to be of proper size given the window dimensions
-//
-void Shape::fit_to_window()
-{
-	float aspect = (1.0f * window_width) / window_height;
-	mat4 scaling_mat;
-	if (window_width > window_height)
-		scaling_mat = scale(mat4(1.0f), vec3(1/aspect,1.0f,0.0f));
-	else
-		scaling_mat = scale(mat4(1.0f), vec3(1.0f,aspect,0.0f));
-    std::vector<vec3> vec;
-	for (int i = 0; i < base_vData.size(); i++) {
-		vec4 elem(base_vData[i], 1);
-		elem = scaling_mat * elem;
-        vec.push_back(elem);
-	}
-    vData = vec;
-}
-
-//
-// scale the vertex buffer data in 2D by some factor
-//
-void Shape::scale_vData()
-{
-	float small = std::min(window_width, window_height) * 1.0f;
-	float ratio = unit_len / small;
-	mat4 scaling_mat = scale(mat4(1.0f), vec3(ratio,ratio,0.0f));
-	for (int i = 0; i < vData.size(); i++) {
-		vec4 elem(vData[i], 1);
-		elem = scaling_mat * elem;
-		vData[i] = elem;
-	}
-}
-
-//
-// translate the vertex buffer data by some number of pixels
-// this calculation depends on the current size of the window
-//
-void Shape::translate_vData(int xpos, int ypos)
-{
-	float xshift = (2.0f * xpos) / window_width;
-	float yshift = (2.0f * ypos) / window_height;
-	mat4 scaling_mat = glm::translate(mat4(1.0f), vec3(xshift, yshift, 0.0f));
-	for (int i = 0; i < vData.size(); i++) {
-		vec4 elem(vData[i], 1);
-		elem = scaling_mat * elem;
-		vData[i] = elem;
-	}
-}
-
-void Shape::translate(Position pos)
-{
-    this->pos = this->pos + pos;
-    translate_vData(pos.x, pos.y);
-}
-
-void Shape::set_pos(Position pos)
-{
-    translate(pos - this->pos);
-}
-
-Triangle::Triangle(int side_len) :
-    Shape(
+triangle::triangle(pixels side_len) :
+    shape(
         std::vector<vec3> {
             {-1.0f, -1.0f,  0.0f},
             {1.0f,  -1.0f,  0.0f},
@@ -149,51 +89,70 @@ Triangle::Triangle(int side_len) :
             {1.0f, 0.0f, 0.0f},
             {1.0f, 0.0f, 0.0f},
         },
-        side_len / 2
+        pixels(side_len.px/2),
+        position(0,0)
     )
 {
 }
 
-Circle::Circle(int radius) :
-    Shape(
+circle::circle(pixels radius, position pos) :
+    shape(
         std::vector<vec3> {
             {1.000f, 0.000f, 0.000f},
-            {0.866f, 0.500f, 0.000f},
+            {0.940f, 0.342f, 0.000f},
             {0.000f, 0.000f, 0.000f},
-            {0.866f, 0.500f, 0.000f},
+            {0.940f, 0.342f, 0.000f},
+            {0.766f, 0.643f, 0.000f},
+            {0.000f, 0.000f, 0.000f},
+            {0.766f, 0.643f, 0.000f},
             {0.500f, 0.866f, 0.000f},
             {0.000f, 0.000f, 0.000f},
             {0.500f, 0.866f, 0.000f},
-            {0.000f, 1.000f, 0.000f},
+            {0.174f, 0.985f, 0.000f},
             {0.000f, 0.000f, 0.000f},
-            {0.000f, 1.000f, 0.000f},
+            {0.174f, 0.985f, 0.000f},
+            {-0.174f, 0.985f, 0.000f},
+            {0.000f, 0.000f, 0.000f},
+            {-0.174f, 0.985f, 0.000f},
             {-0.500f, 0.866f, 0.000f},
             {0.000f, 0.000f, 0.000f},
             {-0.500f, 0.866f, 0.000f},
-            {-0.866f, 0.500f, 0.000f},
+            {-0.766f, 0.643f, 0.000f},
             {0.000f, 0.000f, 0.000f},
-            {-0.866f, 0.500f, 0.000f},
+            {-0.766f, 0.643f, 0.000f},
+            {-0.940f, 0.342f, 0.000f},
+            {0.000f, 0.000f, 0.000f},
+            {-0.940f, 0.342f, 0.000f},
             {-1.000f, 0.000f, 0.000f},
             {0.000f, 0.000f, 0.000f},
             {-1.000f, 0.000f, 0.000f},
-            {-0.866f, -0.500f, 0.000f},
+            {-0.940f, -0.342f, 0.000f},
             {0.000f, 0.000f, 0.000f},
-            {-0.866f, -0.500f, 0.000f},
+            {-0.940f, -0.342f, 0.000f},
+            {-0.766f, -0.643f, 0.000f},
+            {0.000f, 0.000f, 0.000f},
+            {-0.766f, -0.643f, 0.000f},
             {-0.500f, -0.866f, 0.000f},
             {0.000f, 0.000f, 0.000f},
             {-0.500f, -0.866f, 0.000f},
-            {-0.000f, -1.000f, 0.000f},
+            {-0.174f, -0.985f, 0.000f},
             {0.000f, 0.000f, 0.000f},
-            {-0.000f, -1.000f, 0.000f},
+            {-0.174f, -0.985f, 0.000f},
+            {0.174f, -0.985f, 0.000f},
+            {0.000f, 0.000f, 0.000f},
+            {0.174f, -0.985f, 0.000f},
             {0.500f, -0.866f, 0.000f},
             {0.000f, 0.000f, 0.000f},
             {0.500f, -0.866f, 0.000f},
-            {0.866f, -0.500f, 0.000f},
+            {0.766f, -0.643f, 0.000f},
             {0.000f, 0.000f, 0.000f},
-            {0.866f, -0.500f, 0.000f},
+            {0.766f, -0.643f, 0.000f},
+            {0.940f, -0.342f, 0.000f},
+            {0.000f, 0.000f, 0.000f},
+            {0.940f, -0.342f, 0.000f},
             {1.000f, -0.000f, 0.000f},
             {0.000f, 0.000f, 0.000f},
-        },
+        }, 
         std::vector<color> {
             {1.000f, 0.000f, 0.000f},
             {1.000f, 0.000f, 0.000f},
@@ -231,43 +190,68 @@ Circle::Circle(int radius) :
             {1.000f, 0.000f, 0.000f},
             {1.000f, 0.000f, 0.000f},
             {1.000f, 0.000f, 0.000f},
+            {1.000f, 0.000f, 0.000f},
+            {1.000f, 0.000f, 0.000f},
+            {1.000f, 0.000f, 0.000f},
+            {1.000f, 0.000f, 0.000f},
+            {1.000f, 0.000f, 0.000f},
+            {1.000f, 0.000f, 0.000f},
+            {1.000f, 0.000f, 0.000f},
+            {1.000f, 0.000f, 0.000f},
+            {1.000f, 0.000f, 0.000f},
+            {1.000f, 0.000f, 0.000f},
+            {1.000f, 0.000f, 0.000f},
+            {1.000f, 0.000f, 0.000f},
+            {1.000f, 0.000f, 0.000f},
+            {1.000f, 0.000f, 0.000f},
+            {1.000f, 0.000f, 0.000f},
+            {1.000f, 0.000f, 0.000f},
+            {1.000f, 0.000f, 0.000f},
+            {1.000f, 0.000f, 0.000f},
         },
-        radius / 2
+        pixels(2 * radius.px),
+        pos
     )
 {
 }
 
-Window2d::Window2d(int width, int height, std::string name) :
-    width(width),
-    height(height),
-    name(name)
+circle::circle(pixels radius) :
+    circle(radius, position(0,0))
 {
 }
 
-void Render2d::animate(
-    Window2d& win,
-    int fps,
-    std::vector<Shape> shapes,
-    std::function<std::vector<Shape>(std::vector<Shape>)> func)
+window2d::window2d(pixels width, pixels height, color col, std::string name) :
+    width(width),
+    height(height),
+    name(name),
+    col(col)
 {
-	window my_window = window(pixels(win.width), pixels(win.height), win.name); 
-    if (!my_window.ok()) 
-    {
-        std::cout << "failed to open window\n";
-        return;
-    }
-        
-   	// scale the shapes appropriately given the window size 
-    for (Shape& shape : shapes) {
-        shape.set_window_size(win.width, win.height);
-        shape.scale_vData();
-    }
-    
-	my_window.set_background_color(color(colors::forest_green));
+}
 
+void render2d::animate(
+    window2d& win,
+    int fps,
+    std::vector<shape> shapes,
+    std::function<std::vector<shape>(std::vector<shape>)> func)
+{
+    // init this window, must do this first so that we can have the context for the other 
+    // opengl functionality
+    window my_window(win.width, win.height, win.name); 
+    my_window.set_background_color(win.col);
+    
+    // TODO: scale all the shapes and init the render pipeline
     double interval = 1.0 / fps;
 	
     double prev_time = glfwGetTime();
+        
+    // define the matrix to scale the shapes depending on the window size 
+    float aspect = (1.0f * win.width.px) / win.height.px;
+    mat4 scaled;
+    if (win.width.px > win.height.px)
+        scaled = scale(mat4(1.0f), vec3(1/aspect,1.0f,0.0f));
+    else
+        scaled = scale(mat4(1.0f), vec3(1.0f,aspect,0.0f));
+    
     my_window.render([&]{
         double curr_time = glfwGetTime();
         if (curr_time - prev_time > interval) {
@@ -275,11 +259,26 @@ void Render2d::animate(
             shapes = func(shapes);
         }
         
-       	// render all of the shapes 
-        for (Shape& shape : shapes) {
-            render_pipeline p(shape.vertex_shader, shape.fragment_shader);
-            p.update_vertex_attr("vPosition", shape.vData);
-            p.update_vertex_attr("vColor", shape.fData);
+        // render all of the shapes 
+        for (shape& s : shapes) {
+            // TODO: doing the matrix calculation and creating a render pipeline for each frame is 
+            // expensive! Optimize this once we get something working. As they say, preoptimization
+            // is the root of all evil!
+
+            // scale the shape to the desired size
+            float ratio = s.unit_len.px / (std::min(win.width.px, win.height.px) * 1.0f);
+	        mat4 mvp = scale(scaled, vec3(ratio,ratio,0.0f));
+
+            // translate the shape based on its current position
+            float xshift = (2.0f * s.pos.x) / s.unit_len.px;
+	        float yshift = (2.0f * s.pos.y) / s.unit_len.px;
+            mvp = glm::translate(mvp, vec3(xshift, yshift, 0.0f));
+
+            render_pipeline p(s.vertex_shader, s.fragment_shader);
+            
+            p["MVP"] = mvp;
+            p["vPosition"] = s.base_vertices;
+            p["vColor"] = s.base_fragments;
             p.render(win.width, win.height);
         }
     });
