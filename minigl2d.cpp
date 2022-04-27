@@ -1,4 +1,5 @@
 #include <iostream>
+#include <cmath>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/transform.hpp>
 #include "minigl2d.hpp"
@@ -11,6 +12,7 @@ namespace minigl
 // TODO: these are globals! figure out a way to get rid of this is possible!
 bool pressed_keys[NUM_KEYS];
 bool noticed_keys[NUM_KEYS];
+position cursor_pos;
 
 position::position() : 
     x(0),
@@ -36,6 +38,27 @@ position position::operator-(const position& p)
     retP.x = this->x - p.x;
     retP.y = this->y - p.y;
     return retP;
+}
+
+position position::operator*(const int a)
+{
+    position retP;
+    retP.x = this->x * a;
+    retP.y = this->y * a;
+    return retP;
+}
+
+position position::operator/(const int a)
+{
+    position retP;
+    retP.x = this->x / a;
+    retP.y = this->y / a;
+    return retP;
+}
+
+double position::distance_to(const position& p)
+{
+    return std::sqrt(std::pow(p.x - this->x, 2) + std::pow(p.y - this->y, 2));
 }
 
 position shape::get_pos()
@@ -239,6 +262,13 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
     }
 }
 
+static void cursor_callback(GLFWwindow* window, double xpos, double ypos)
+{
+    int width, height;
+    glfwGetWindowSize(window, &width, &height);
+    cursor_pos = position(xpos-width/2, -ypos+height/2);
+}
+
 void render2d::animate(
     window2d& win,
     int fps,
@@ -264,7 +294,7 @@ void render2d::animate(
         scaled = scale(mat4(1.0f), vec3(1.0f,aspect,0.0f));
     
     
-    my_window.render_and_listen(key_callback,
+    my_window.render_and_listen(key_callback, cursor_callback,
     [&]{
         double curr_time = glfwGetTime();
         if (curr_time - prev_time > interval) {
@@ -272,6 +302,7 @@ void render2d::animate(
             events e;
             for (int i = 0; i < NUM_KEYS; i++)
                 e.pressed_keys[i] = noticed_keys[i];
+            e.cursor_pos = cursor_pos;
 
             shapes = func(shapes, e);
             

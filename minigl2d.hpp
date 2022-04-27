@@ -24,6 +24,9 @@ struct position
     int x, y;
     position operator+(const position& p);
     position operator-(const position& p);
+    position operator*(const int);
+    position operator/(const int);
+    double distance_to(const position& p);
 };
 
 struct window2d
@@ -88,7 +91,7 @@ protected:
 struct events
 {
     bool pressed_keys[NUM_KEYS];
-    position mouse_pos;
+    position cursor_pos;
 };
 
 class render2d

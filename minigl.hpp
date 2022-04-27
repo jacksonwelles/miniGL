@@ -131,7 +131,7 @@ namespace minigl
         }
         template <typename C, typename... R>
         requires std::invocable<C, R...>
-        void render_and_listen(GLFWkeyfun callback, C oper, R &&...args)
+        void render_and_listen(GLFWkeyfun press_callback, GLFWcursorposfun cursor_callback, C oper, R &&...args)
         {
             do
             {
@@ -143,7 +143,8 @@ namespace minigl
                 // Swap buffers
                 glfwSwapBuffers(window_ptr);
                 glfwPollEvents();
-                glfwSetKeyCallback(window_ptr, callback);
+                glfwSetKeyCallback(window_ptr, press_callback);
+                glfwSetCursorPosCallback(window_ptr, cursor_callback);
             } while (glfwGetKey(window_ptr, GLFW_KEY_ESCAPE) != GLFW_PRESS &&
                      glfwWindowShouldClose(window_ptr) == 0);
         }
