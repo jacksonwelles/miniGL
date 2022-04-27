@@ -74,6 +74,7 @@ namespace minigl
     public:
         int px;
         constexpr pixels(int x) : px{x} {};
+        constexpr pixels() : px{0}{};
     };
     constexpr pixels operator"" _px(unsigned long long arg)
     {
@@ -107,6 +108,7 @@ namespace minigl
         bool ok(void);
         int width(void) const {return window_width;}
         int height(void) const {return window_height;}
+        glm::vec2 cursor_pos(void);
         window(pixels width, pixels height, std::string name);
         ~window();
         window &operator=(const window &) = delete;
@@ -229,9 +231,16 @@ namespace minigl
             GLuint framebuf_id;
             GLuint depthbuf_id;
         };
+        struct texture_cache
+        {
+            bool is_connected;
+            GLuint tex_id;
+            int width;
+            int height;
+        } cache;
         
         bool is_ok = false;
-        bool connected = false;
+        GLuint last_texture;
         GLsizei min_verticies;
         GLuint vao_id;
         GLuint shader_program_id;
@@ -267,11 +276,13 @@ namespace minigl
             if constexpr (std::same_as<T, texture>) {
                 glBindTexture(GL_TEXTURE_2D, node.texture_id);
                 glTexImage2D(GL_TEXTURE_2D,
-                    0, GL_RGBA, new_value.width(), new_value.height(),
+                    0, GL_RGBA32F, new_value.width(), new_value.height(),
                     0, GL_RGBA, GL_FLOAT, new_value.tex_data.data());
                 glUniform1i(node.uniform_id, node.texture_num);
                 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
                 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
             } else if constexpr (std::same_as<T, typename glm::mat4>) {
                 glUniformMatrix4fv(node.uniform_id, 1, GL_FALSE, &new_value[0][0]);
             } else if constexpr (std::same_as<T, typename glm::mat3>) {

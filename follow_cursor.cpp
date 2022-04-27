@@ -13,9 +13,9 @@ int main()
     [&](std::vector<shape> world, events e) {
         shape& s = world[0];
         position rel_pos = e.cursor_pos - s.get_pos();
-        int dist = (int) e.cursor_pos.distance_to(s.get_pos());
-        if (dist > 10) {
-            position unit = (rel_pos * 6) / dist;
+        float dist = distance(e.cursor_pos ,s.get_pos());
+        if (dist > 5.0f) {
+            position unit = (rel_pos * 6.0f) / dist;
             s.translate(unit);
         }
         return world;

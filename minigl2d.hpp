@@ -17,17 +17,7 @@ const int W_KEY = 3;
 const int S_KEY = 4;
 const std::vector<int> GLFW_KEYS = { GLFW_KEY_E, GLFW_KEY_A, GLFW_KEY_D, GLFW_KEY_W, GLFW_KEY_S};
 
-struct position
-{
-    position();
-    position(int x, int y);
-    int x, y;
-    position operator+(const position& p);
-    position operator-(const position& p);
-    position operator*(const int);
-    position operator/(const int);
-    double distance_to(const position& p);
-};
+using position = glm::vec2;
 
 struct window2d
 {
@@ -41,6 +31,7 @@ class shape
 {
 public:
     shape() = delete;
+    
     shape
     (
         std::vector<glm::vec3> base_vertices,
@@ -48,18 +39,28 @@ public:
         pixels unit_len,
         position pos
     );
+    shape(const shape &s):shape(s.base_vertices, s.base_fragments, s.unit_len, s.pos){};
     void translate(position pos);
     void set_pos(position pos);
+    void set_scale(glm::vec2 s);
+    void scale(glm::vec2 s);
+    void render(pixels w, pixels h);
     position get_pos();
+    
 protected:
+    bool uniforms_updated;
+    bool vertices_updated;
+    render_pipeline pipeline;
     pixels unit_len;
     position pos;
+    glm::vec2 scale_vec;
     std::vector<glm::vec3> base_vertices;
     std::vector<color> base_fragments;
     minigl::shader vertex_shader = minigl::shader(minigl::shader_types::vertex);
     minigl::shader fragment_shader = minigl::shader(minigl::shader_types::fragment);
     int window_width, window_height;
     void scale_and_translate_base(position pos);
+    
 friend class render2d;
 };
 
