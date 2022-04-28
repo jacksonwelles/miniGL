@@ -58,7 +58,11 @@ std::vector<color> get_color_vec(color col, int size)
 
 void shape::render(pixels w, pixels h)
 {
-    pipeline.init(vertex_shader, fragment_shader);
+    if (enable_tex)
+        pipeline.init(tex_vertex_shader, tex_fragment_shader);
+    else
+        pipeline.init(vertex_shader, fragment_shader);
+    
     if (!uniforms_updated) {
         mat4 move = glm::translate(mat4(1.0f),
             vec3(pos.x, pos.y, 0.0f) /  vec3(0.5f * w.px, 0.5f * h.px, 1.0f));
@@ -69,6 +73,10 @@ void shape::render(pixels w, pixels h)
 
         pipeline["MVP"] = move * scaler;
         uniforms_updated = true;
+        if (enable_tex) {
+            pipeline["tex"] = tex;
+            pipeline["uv"] = uv;
+        }
     }
     if (!vertices_updated) {
         pipeline["vPosition"] = base_vertices;
@@ -78,14 +86,23 @@ void shape::render(pixels w, pixels h)
     pipeline.render(w, h);
 }
 
-shape::shape(std::vector<glm::vec3> base_vertices, std::vector<color> base_fragments, pixels unit_len, position pos) :
+shape::shape(std::vector<glm::vec3> base_vertices,
+    std::vector<color> base_fragments,
+    pixels unit_len,
+    position pos,
+    std::vector<vec2> uv,
+    bool enable_tex,
+    texture tex) :
     base_vertices(base_vertices),
     base_fragments(base_fragments),
     unit_len(unit_len),
     pos(pos),
     scale_vec(1.0f, 1.0f),
     uniforms_updated(false),
-    vertices_updated(false)
+    vertices_updated(false),
+    enable_tex(enable_tex),
+    uv(uv),
+    tex(tex)
 {
     // for this constructor just predefine the vertex and fragment scripts
     // define default vertex and fragment shaders, we would want another constructor eventually
@@ -107,6 +124,41 @@ shape::shape(std::vector<glm::vec3> base_vertices, std::vector<color> base_fragm
             color = fColor;
         }
     )");
+    // if a uv vector was defined, then  texture shaders
+    if (uv.size() > 0) {
+        tex_vertex_shader.add_attribute<glm::vec3>("vPosition");
+        tex_vertex_shader.add_attribute<color>("vColor");
+        tex_vertex_shader.add_uniform<glm::mat4>("MVP");
+        tex_vertex_shader.add_attribute<glm::vec2>("uv");
+        tex_fragment_shader.add_uniform<texture>("tex");
+        tex_vertex_shader.define_shader(R"(
+            out vec2 frag_uv;
+            void main()
+            {
+                gl_Position = MVP * vec4(vPosition, 1.0);
+                frag_uv = uv;
+            }
+        )");
+        tex_fragment_shader.define_shader(R"(
+            in vec2 frag_uv;
+            out vec3 color;
+            void main()
+            {
+                color = texture(tex, frag_uv).rgb;
+            }
+        )");
+    }
+}
+
+shape::shape(std::vector<glm::vec3> base_vertices, std::vector<color> base_fragments, pixels unit_len, position pos) :
+    shape(base_vertices, base_fragments, unit_len, pos, std::vector<vec2>(), false, texture())
+{
+}
+
+void shape::attach_tex(texture tex)
+{
+    this->tex = tex;
+    enable_tex = true;
 }
 
 triangle::triangle(pixels side_len) :
@@ -219,7 +271,17 @@ rectangle::rectangle(pixels width, pixels height, color col, position pos) :
         }, 
         get_color_vec(col, 6),
         pixels(width),
-        pos
+        pos,
+        std::vector<vec2> {
+            {0, 1},
+            {0, 0},
+            {1, 0},
+            {1, 1},
+            {0, 1},
+            {1, 0},
+        },
+        false,
+        texture()
     )
 {
 }

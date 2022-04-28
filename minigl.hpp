@@ -88,6 +88,7 @@ namespace minigl
         int w;
         int h;
     public:
+        texture() : texture(100_px, 100_px, colors::white) {};
         texture(const pixels &width, const pixels &height, const color &background);
         int width(void) const {return w;}
         int height(void) const {return h;}
