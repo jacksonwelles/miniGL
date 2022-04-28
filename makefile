@@ -2,7 +2,7 @@ CC = g++
 CXXFLAGS = -std=c++20 -O2
 LDFLAGS = -lGL -lGLEW -lglfw -L/usr/local/lib
 
-default: bouncing_ball simple_move follow_cursor fluids
+default: bouncing_ball simple_move follow_cursor fluids pong
 
 all: bouncing_ball simple_move follow_cursor fluids game_of_life \
 render_to_texture texture_demo standard_cube minigl_cube
@@ -37,7 +37,10 @@ simple_move: simple_move.o minigl2d.o minigl.o
 follow_cursor: follow_cursor.o minigl2d.o minigl.o
 	$(CC) -o follow_cursor.exe follow_cursor.o minigl2d.o minigl.o $(LDFLAGS)
 
+pong: pong.o minigl2d.o minigl.o
+	$(CC) -o pong.exe pong.o minigl2d.o minigl.o $(LDFLAGS)
 
+pong: minigl2d.hpp minigl.hpp
 follow_cursor: minigl2d.hpp minigl.hpp
 simple_move: minigl2d.hpp minigl.hpp
 bouncing_ball.o: minigl2d.hpp minigl.hpp
