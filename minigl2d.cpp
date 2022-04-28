@@ -329,6 +329,20 @@ static void cursor_callback(GLFWwindow* window, double xpos, double ypos)
     cursor_pos = position(xpos-width/2.0f, -ypos +height/2.0f);
 }
 
+void render2d::draw(window2d& win, std::vector<shape> shapes)
+{
+    // init this window, must do this first so that we can have the context for the other 
+    // opengl functionality
+    window my_window(win.width, win.height, win.name); 
+    my_window.set_background_color(win.col);
+    
+    my_window.render([&]{
+        for (shape& s : shapes) {
+            s.render(win.width, win.height);
+        }
+    });
+}
+
 void render2d::animate(
     window2d& win,
     int fps,

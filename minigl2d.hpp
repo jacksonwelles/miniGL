@@ -130,8 +130,11 @@ public:
     static void animate(
         window2d& win,
         int fps,
-        std::vector<shape> sprites,
+        std::vector<shape> shapes,
         std::function<void(std::vector<shape>&, events)> func);
+    static void draw(
+        window2d& win,
+        std::vector<shape> shapes);
 };
 
 
