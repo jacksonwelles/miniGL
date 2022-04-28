@@ -72,11 +72,11 @@ void shape::render(pixels w, pixels h)
             vec3(scale_vec.x, scale_vec.y, 0.0f));
 
         pipeline["MVP"] = move * scaler;
-        uniforms_updated = true;
         if (enable_tex) {
             pipeline["tex"] = tex;
             pipeline["uv"] = uv;
         }
+        uniforms_updated = true;
     }
     if (!vertices_updated) {
         pipeline["vPosition"] = base_vertices;
@@ -159,6 +159,7 @@ void shape::attach_tex(texture tex)
 {
     this->tex = tex;
     enable_tex = true;
+    uniforms_updated = false;
 }
 
 triangle::triangle(pixels side_len) :

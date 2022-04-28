@@ -15,7 +15,13 @@ const int A_KEY = 1;
 const int D_KEY = 2;
 const int W_KEY = 3;
 const int S_KEY = 4;
-const std::vector<int> GLFW_KEYS = { GLFW_KEY_E, GLFW_KEY_A, GLFW_KEY_D, GLFW_KEY_W, GLFW_KEY_S};
+const std::vector<int> GLFW_KEYS = { 
+    GLFW_KEY_E, 
+    GLFW_KEY_A, 
+    GLFW_KEY_D, 
+    GLFW_KEY_W, 
+    GLFW_KEY_S, 
+};
 
 using position = glm::vec2;
 
