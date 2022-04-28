@@ -41,6 +41,7 @@ public:
     );
     shape(const shape &s):shape(s.base_vertices, s.base_fragments, s.unit_len, s.pos){};
     void translate(position pos);
+    void translate(int x, int y);
     void set_pos(position pos);
     void set_scale(glm::vec2 s);
     void scale(glm::vec2 s);

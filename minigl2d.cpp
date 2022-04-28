@@ -25,6 +25,11 @@ void shape::translate(position pos)
     uniforms_updated = false;
 }
 
+void shape::translate(int x, int y)
+{
+    translate(position(x, y));
+}
+
 void shape::set_pos(position pos)
 {
     translate(pos - this->pos);
