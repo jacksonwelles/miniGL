@@ -15,7 +15,13 @@ const int A_KEY = 1;
 const int D_KEY = 2;
 const int W_KEY = 3;
 const int S_KEY = 4;
-const std::vector<int> GLFW_KEYS = { GLFW_KEY_E, GLFW_KEY_A, GLFW_KEY_D, GLFW_KEY_W, GLFW_KEY_S};
+const std::vector<int> GLFW_KEYS = { 
+    GLFW_KEY_E, 
+    GLFW_KEY_A, 
+    GLFW_KEY_D, 
+    GLFW_KEY_W, 
+    GLFW_KEY_S, 
+};
 
 using position = glm::vec2;
 
@@ -39,7 +45,17 @@ public:
         pixels unit_len,
         position pos
     );
-    shape(const shape &s):shape(s.base_vertices, s.base_fragments, s.unit_len, s.pos){};
+    shape
+    (
+        std::vector<glm::vec3> base_vertices,
+        std::vector<color> base_fragments,
+        pixels unit_len,
+        position pos,
+        std::vector<glm::vec2> uv,
+        bool enable_tex,
+        texture tex
+    );
+    shape(const shape &s):shape(s.base_vertices, s.base_fragments, s.unit_len, s.pos, s.uv, s.enable_tex, s.tex){};
     void translate(position pos);
     void translate(int x, int y);
     void set_pos(position pos);
@@ -47,6 +63,7 @@ public:
     void scale(glm::vec2 s);
     void render(pixels w, pixels h);
     position get_pos();
+    void attach_tex(texture tex);
     
 protected:
     bool uniforms_updated;
@@ -57,8 +74,19 @@ protected:
     glm::vec2 scale_vec;
     std::vector<glm::vec3> base_vertices;
     std::vector<color> base_fragments;
+    
+    // standard vertex and fragment shaders 
     minigl::shader vertex_shader = minigl::shader(minigl::shader_types::vertex);
     minigl::shader fragment_shader = minigl::shader(minigl::shader_types::fragment);
+
+    // vertex and fragment shaders for textures and uv data
+    // maybe later have a vector of different shaders?
+    minigl::shader tex_vertex_shader = minigl::shader(minigl::shader_types::vertex);
+    minigl::shader tex_fragment_shader = minigl::shader(minigl::shader_types::fragment);
+    std::vector<glm::vec2> uv;
+    bool enable_tex;
+    texture tex;
+    
     int window_width, window_height;
     void scale_and_translate_base(position pos);
     
