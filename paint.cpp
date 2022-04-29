@@ -17,7 +17,7 @@ int main()
 
     render2d::animate(my_win, 144, initial_world, 
     [&](std::vector<shape> &world, events e) {
-        if (e.pressed_keys[A_KEY]) {
+        if (e.left_click) {
             int x_pixel = (e.cursor_pos[0] + 600) / 4;
             int y_pixel = (e.cursor_pos[1] + 400) / 4;
             if (x_pixel > 0 && y_pixel > 0 && x_pixel < 300 && y_pixel < 200) {

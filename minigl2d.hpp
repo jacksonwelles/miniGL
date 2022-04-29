@@ -15,12 +15,24 @@ const int A_KEY = 1;
 const int D_KEY = 2;
 const int W_KEY = 3;
 const int S_KEY = 4;
+const int SPACE_KEY = 5;
+const int Q_KEY = 6;
+const int LEFT_KEY = 7;
+const int RIGHT_KEY = 8;
+const int UP_KEY = 9;
+const int DOWN_KEY = 10;
 const std::vector<int> GLFW_KEYS = { 
     GLFW_KEY_E, 
     GLFW_KEY_A, 
     GLFW_KEY_D, 
     GLFW_KEY_W, 
     GLFW_KEY_S, 
+    GLFW_KEY_SPACE, 
+    GLFW_KEY_Q, 
+    GLFW_KEY_LEFT, 
+    GLFW_KEY_RIGHT, 
+    GLFW_KEY_UP, 
+    GLFW_KEY_DOWN, 
 };
 
 using position = glm::vec2;
@@ -56,7 +68,7 @@ public:
         texture tex
     );
     shape(const shape &s):shape(s.base_vertices, s.base_fragments, s.unit_len, s.pos, s.uv, s.enable_tex, s.tex){};
-    void translate(position pos);
+    void translate(const position pos);
     void translate(int x, int y);
     void set_pos(position pos);
     void set_scale(glm::vec2 s);
@@ -122,16 +134,20 @@ struct events
 {
     bool pressed_keys[NUM_KEYS];
     position cursor_pos;
+    bool left_click;
 };
 
 class render2d
 {
 public:
     static void animate(
-        window2d& win,
+        const window2d& win,
         int fps,
-        std::vector<shape> sprites,
+        std::vector<shape> shapes,
         std::function<void(std::vector<shape>&, events)> func);
+    static void draw(
+        const window2d& win,
+        std::vector<shape> shapes);
 };
 
 

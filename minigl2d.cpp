@@ -13,6 +13,8 @@ namespace minigl
 bool pressed_keys[NUM_KEYS];
 bool noticed_keys[NUM_KEYS];
 position cursor_pos;
+bool left_clicked;
+bool noticed_left_clicked;
 
 position shape::get_pos()
 {
@@ -329,8 +331,32 @@ static void cursor_callback(GLFWwindow* window, double xpos, double ypos)
     cursor_pos = position(xpos-width/2.0f, -ypos +height/2.0f);
 }
 
+void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
+{
+    if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS) {
+        left_clicked = true;
+        noticed_left_clicked = true;
+    }
+    if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_RELEASE)
+        left_clicked = false;
+}
+
+void render2d::draw(const window2d& win, std::vector<shape> shapes)
+{
+    // init this window, must do this first so that we can have the context for the other 
+    // opengl functionality
+    window my_window(win.width, win.height, win.name); 
+    my_window.set_background_color(win.col);
+    
+    my_window.render([&]{
+        for (shape& s : shapes) {
+            s.render(win.width, win.height);
+        }
+    });
+}
+
 void render2d::animate(
-    window2d& win,
+    const window2d& win,
     int fps,
     std::vector<shape> shapes,
     std::function<void(std::vector<shape>&, events)> func)
@@ -348,7 +374,7 @@ void render2d::animate(
     double print_last_time = prev_time;
     int nframes = 0;
     
-    my_window.render_and_listen(key_callback, cursor_callback,
+    my_window.render_and_listen(key_callback, cursor_callback, mouse_button_callback,
     [&]{
         double curr_time = glfwGetTime();
         if (curr_time - prev_time > interval) {
@@ -357,9 +383,11 @@ void render2d::animate(
             for (int i = 0; i < NUM_KEYS; i++)
                 e.pressed_keys[i] = noticed_keys[i];
             e.cursor_pos = cursor_pos;
+            e.left_click = noticed_left_clicked;
 
             func(shapes, e);
             
+            noticed_left_clicked = left_clicked && noticed_left_clicked; 
             for (int i = 0; i < NUM_KEYS; i++)
                 noticed_keys[i] = pressed_keys[i] && noticed_keys[i];
         }
