@@ -17,7 +17,7 @@ GLM : https://github.com/g-truc/glm or Homebrew <br>
 (Optional) SOIL : https://github.com/childhood/libSOIL <br>
 
 ### Helpful Tutorials
-http://www.opengl-tutorial.org/beginners-tutorials/tutorial-1-opening-a-window/#prerequisites
-https://open.gl/
-http://fromsbeginner.blogspot.com/2016/07/setup-opengl-environment-on-xcode.html (For XCode)
+http://www.opengl-tutorial.org/beginners-tutorials/tutorial-1-opening-a-window/#prerequisites <br>
+https://open.gl/ <br>
+http://fromsbeginner.blogspot.com/2016/07/setup-opengl-environment-on-xcode.html (For XCode) <br>
 
