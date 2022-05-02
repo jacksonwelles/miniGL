@@ -1,6 +1,6 @@
 #include <iostream>
 #include <algorithm>
-#include "minigl2d.hpp"
+#include <minigl2d.hpp>
 
 using namespace minigl;
 using namespace glm;

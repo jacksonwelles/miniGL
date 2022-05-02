@@ -2,7 +2,7 @@
 #include <cmath>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/transform.hpp>
-#include "minigl2d.hpp"
+#include <minigl2d.hpp>
 
 using namespace glm;
 

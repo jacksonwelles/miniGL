@@ -3,7 +3,7 @@
 
 #include <iostream>
 
-#include "minigl.hpp"
+#include <minigl.hpp>
 // GLFWwindow* window;
 
 // Include GLM
@@ -40,7 +40,7 @@ void make_plane(render_pipeline &p)
 
 int main(void)
 {
-    window my_window = window(1024_px, 1024_px, "Tutorial"); 
+    window my_window = window(1024_px, 1024_px, "Fluids"); 
     if (!my_window.ok()) {return 1;}
 
     shader pvert(shader_types::vertex);

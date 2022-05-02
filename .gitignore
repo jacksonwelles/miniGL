@@ -2,3 +2,15 @@
 *.exe
 *.exe.*
 .vscode
+bouncing_ball
+simple_move
+follow_cursor
+fluids
+game_of_life 
+render_to_texture
+texture_demo
+standard_cube
+minigl_cube
+sandbox
+pong
+paint

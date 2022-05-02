@@ -1,4 +1,4 @@
-#include "minigl.hpp"
+#include <minigl.hpp>
 #include <iostream>
 #include <exception>
 #include <functional>

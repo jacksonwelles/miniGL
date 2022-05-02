@@ -10,11 +10,16 @@ Manual : https://docs.google.com/document/d/1wesKh4AN9xgziKjXjFV80Nj5gsIJGBlvLGi
 Tutorial : https://drive.google.com/file/d/1hKNAreqAjPFIuMFjtIuDckpWJrqoCfq8/view?usp=sharing
 
 ## Setup Support
-### Prerequisites
+
+### Prerequisites (ALL Platforms)
 GLFW : https://www.glfw.org/ or Homebrew <br>
 GLEW : https://sourceforge.net/projects/glew/postdownload or Homebrew <br>
 GLM : https://github.com/g-truc/glm or Homebrew <br>
 (Optional) SOIL : https://github.com/childhood/libSOIL <br>
+
+### Quick Start (Linux only)
+Run:
+```sudo apt install libglfw3-dev libglm-dev libglew-dev```
 
 ### Helpful Tutorials
 http://www.opengl-tutorial.org/beginners-tutorials/tutorial-1-opening-a-window/#prerequisites <br>

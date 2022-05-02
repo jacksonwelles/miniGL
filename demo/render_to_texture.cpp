@@ -3,7 +3,7 @@
 
 #include <iostream>
 
-#include "minigl.hpp"
+#include <minigl.hpp>
 // GLFWwindow* window;
 
 // Include GLM
@@ -110,7 +110,7 @@ static vector<vec2> uvs = {
 
 int main(void)
 {
-    window my_window = window(1024_px, 768_px, "Tutorial"); 
+    window my_window = window(1024_px, 768_px, "Render to Texture Demo"); 
     if (!my_window.ok()) {return 1;}
 
     shader plane_vert_shader(shader_types::vertex);

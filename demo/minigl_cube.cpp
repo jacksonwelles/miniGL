@@ -4,7 +4,7 @@
 
 #include <iostream>
 
-#include "minigl.hpp"
+#include <minigl.hpp>
 // GLFWwindow* window;
 
 // Include GLM
@@ -96,7 +96,7 @@ static vector<color> g_color_buffer_data = {
 int main( void )
 {
 
-    window my_window = window(1024_px, 768_px, "Tutorial"); 
+    window my_window = window(1024_px, 768_px, "miniGL Cube"); 
     if (!my_window.ok()) {return 1;}
 
     shader vertex_shader(shader_types::vertex), fragment_shader(shader_types::fragment);

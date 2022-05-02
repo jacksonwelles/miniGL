@@ -3,7 +3,7 @@
 
 #include <iostream>
 
-#include "minigl.hpp"
+#include <minigl.hpp>
 // GLFWwindow* window;
 
 // Include GLM
@@ -33,7 +33,7 @@ static vector<vec2> uvs = {
 
 int main(void)
 {
-    window my_window = window(1024_px, 768_px, "Tutorial"); 
+    window my_window = window(1024_px, 768_px, "Game of Life"); 
     if (!my_window.ok()) {return 1;}
 
     shader basic_vert_shader(shader_types::vertex);
@@ -97,8 +97,8 @@ int main(void)
     render_pipeline life_pipeline(basic_vert_shader, life_frag_shader);
     render_pipeline plane_pipeline(basic_vert_shader, basic_frag_shader);
 
-    pixels height {my_window.height()};
-    pixels width {my_window.width()};
+    pixels height {150};
+    pixels width {200};
     texture life_start(width, height, colors::black);
     vector<pair<int, int>> infi_cell = {
         {0, 0},
@@ -117,11 +117,11 @@ int main(void)
     };
     for (auto pair : infi_cell)
     {
-       life_start[100 + pair.first][500 + pair.second]  = colors::white;
+       life_start[50 + pair.first][75 + pair.second]  = colors::white;
     }
     for (auto pair : infi_cell)
     {
-       life_start[100 + pair.first][600 + pair.second]  = colors::white;
+       life_start[50 + pair.first][125 + pair.second]  = colors::white;
     }
 
     life_pipeline["pos"] = plane_buff;
@@ -136,7 +136,7 @@ int main(void)
     double last_time = glfwGetTime();
     my_window.render([&](){
         double current_time = glfwGetTime();
-        if (current_time - last_time > 0.5) {
+        if (current_time - last_time > 0.2) {
             life_pipeline["tex"] = plane_pipeline.render_to_texture(width, height);
             plane_pipeline["tex"] = life_pipeline.render_to_texture(width, height);
             last_time = current_time;
