@@ -1,28 +1,40 @@
 # MiniGL : Bringing Modern C++ to OpenGL
 COMS W4995 Design Using C++ Group Project <br>
-Jackson Welles, Nathan Cuevas, and Emily Rhyu
+Nathan Cuevas, Emily Rhyu, and Jackson Welles
 
 ## What is MiniGL?
 MiniGL is a C++ graphics library built on top of the existing OpenGL API that provides an expressive interface for graphics.
 
-Design Document : https://docs.google.com/document/d/1IvfrM5bEsdRH9fLoNohNsUe5Tn3qA6_GJgmTZ6ToX-o/edit?usp=sharing <br>
-Manual : https://docs.google.com/document/d/1wesKh4AN9xgziKjXjFV80Nj5gsIJGBlvLGia4YEgk4k/edit?usp=sharing <br>
-Tutorial : https://drive.google.com/file/d/1hKNAreqAjPFIuMFjtIuDckpWJrqoCfq8/view?usp=sharing
+[Design Document](https://github.com/jacksonwelles/miniGL_presentation/blob/main/miniGL_design_doc.pdf) <br>
+[Manual](https://github.com/jacksonwelles/miniGL_presentation/blob/main/miniGL_manual.pdf) <br>
+[Tutorial](https://github.com/jacksonwelles/miniGL_presentation/blob/main/miniGL_tutorial.pdf) <br>
+[Presentation Slides](https://github.com/jacksonwelles/miniGL_presentation/blob/main/miniGL_slides.pdf)
 
 ## Setup Support
 
 ### Prerequisites (ALL Platforms)
-GLFW : https://www.glfw.org/ or Homebrew <br>
-GLEW : https://sourceforge.net/projects/glew/postdownload or Homebrew <br>
-GLM : https://github.com/g-truc/glm or Homebrew <br>
-(Optional) SOIL : https://github.com/childhood/libSOIL <br>
+GLFW : https://www.glfw.org/ <br>
+GLEW : https://sourceforge.net/projects/glew/postdownload <br>
+GLM : https://github.com/g-truc/glm <br>
 
 ### Quick Start (Linux only)
 Run:
 ```sudo apt install libglfw3-dev libglm-dev libglew-dev```
 
-### Helpful Tutorials
-http://www.opengl-tutorial.org/beginners-tutorials/tutorial-1-opening-a-window/#prerequisites <br>
-https://open.gl/ <br>
-http://fromsbeginner.blogspot.com/2016/07/setup-opengl-environment-on-xcode.html (For XCode) <br>
+### Demos
+
+Interactive Fluid Sim
+
+
+https://user-images.githubusercontent.com/71041582/175106833-61383ef8-e5df-4737-9430-c96a5022bc9c.mov
+
+
+
+Conway's Game of Life
+
+
+https://user-images.githubusercontent.com/71041582/175106851-fbf45a58-b94a-462a-afd5-233ad0e7b77d.mov
+
+
+
 
